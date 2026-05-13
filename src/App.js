@@ -363,129 +363,15 @@ function ModContratistas({ empresas, onGuardar, onEstado }) {
   );
 }
 
-// ── FORMULARIO RECEPCIÓN DE DESPACHO ─────────────────────────────────────────
-function FormDespacho({ empresas, onRegistrarDespacho }) {
-  const empLista = Object.values(empresas).filter(e => e.estado !== "bloqueado");
-  const [empBusq, setEmpBusq] = useState("");
-  const [empSel, setEmpSel] = useState(null);
-  const [ok, setOk] = useState("");
-  const [chofer, setChofer] = useState({ nombre: "", tipoDoc: "DNI", dni: "", tel: "", licencia: "", sctrPoliza: "", sctrVenc: "", sctrAseg: "" });
-  const [vehiculo, setVehiculo] = useState({ placa: "", marca: "", soat: "", soatVenc: "", licencia: "", licVenc: "", inspeccion: "", inspVenc: "", seguro: "", segVenc: "" });
-  const [mercancia, setMercancia] = useState({ po: "", descripcion: "" });
-  const [fechaLlegada, setFechaLlegada] = useState(new Date().toISOString().split("T")[0]);
-  const matches = empBusq.length >= 2 ? empLista.filter(e => e.ruc.includes(empBusq) || e.razonSocial.toLowerCase().includes(empBusq.toLowerCase())) : [];
-  const updC = (k, v) => setChofer(f => ({ ...f, [k]: v }));
-  const updV = (k, v) => setVehiculo(f => ({ ...f, [k]: v }));
-  const SI2 = { width: "100%", padding: "7px 11px", border: "1px solid var(--bd2)", borderRadius: 8, fontSize: 13, background: "var(--sf2)", color: "var(--tx)", fontFamily: "inherit", boxSizing: "border-box", outline: "none" };
-  const registrar = () => {
-    if (!empSel) { alert("Selecciona la empresa (debe tener RUC registrado)."); return; }
-    if (!chofer.nombre.trim()) { alert("Ingresa el nombre del chofer."); return; }
-    if (!chofer.dni.trim()) { alert("Ingresa el N° de documento del chofer."); return; }
-    if (!vehiculo.placa.trim()) { alert("Ingresa la placa del vehículo."); return; }
-    if (!mercancia.po.trim()) { alert("Ingresa el N° de PO de la mercancía."); return; }
-    if (!mercancia.descripcion.trim()) { alert("Ingresa la descripción de la mercancía."); return; }
-    if (!fechaLlegada) { alert("Ingresa la fecha prevista de llegada."); return; }
-    onRegistrarDespacho({ id: "DSP-" + String(Date.now()).slice(-4), empresaId: empSel.id, fechaRegistro: fechaLlegada, chofer: { ...chofer }, vehiculo: { ...vehiculo }, mercancia: { ...mercancia }, estado: "Pendiente", guia: "", ingresoHora: "", salidaHora: "" });
-    setOk("Despacho registrado. Vigilancia verá la información cuando llegue el vehículo.");
-    setEmpSel(null); setEmpBusq("");
-    setChofer({ nombre: "", tipoDoc: "DNI", dni: "", tel: "", licencia: "", sctrPoliza: "", sctrVenc: "", sctrAseg: "" });
-    setVehiculo({ placa: "", marca: "", soat: "", soatVenc: "", licencia: "", licVenc: "", inspeccion: "", inspVenc: "", seguro: "", segVenc: "" });
-    setMercancia({ po: "", descripcion: "" });
-    setTimeout(() => setOk(""), 6000);
-  };
-  return (
-    <div>
-      <div style={{ padding: "10px 14px", background: "#E6F1FB", border: "1px solid var(--ac-bd)", borderRadius: 10, fontSize: 12, color: "var(--ac)", marginBottom: "1rem" }}>
-        🚛 Este sub-módulo es para el <strong>Personal de Almacenes</strong>. Registra el despacho antes de que llegue el vehículo. Vigilancia verá el despacho y le dará ingreso/salida cuando llegue.
-      </div>
-      {ok && <div style={{ padding: "10px 14px", background: "#EAF3DE", border: "1px solid var(--gn-bd)", borderRadius: 10, fontSize: 12, color: "var(--gn)", marginBottom: "1rem" }}>✅ {ok}</div>}
-      {/* Empresa */}
-      <div style={SC}>
-        <p style={{ fontSize: 12, fontWeight: 600, color: "var(--tx3)", marginBottom: 8 }}>1. Empresa (debe tener RUC registrado) *</p>
-        {empSel ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: "var(--sf2)", borderRadius: 8 }}>
-            <div style={{ flex: 1 }}><div style={{ fontWeight: 500, fontSize: 13 }}>{empSel.razonSocial}</div><div style={{ fontSize: 12, color: "var(--tx3)" }}>RUC: {empSel.ruc}</div></div>
-            <Btn sm onClick={() => { setEmpSel(null); setEmpBusq(""); }}>Cambiar</Btn>
-          </div>
-        ) : (
-          <div>
-            <input style={SI2} placeholder="Buscar por RUC o razón social..." value={empBusq} onChange={e => setEmpBusq(e.target.value)} />
-            {empBusq.length >= 2 && matches.length > 0 && (
-              <div style={{ border: "1px solid var(--bd2)", borderRadius: 8, overflow: "hidden", marginTop: 8 }}>
-                {matches.map(e => (
-                  <div key={e.id} onClick={() => { setEmpSel(e); setEmpBusq(""); }} style={{ padding: "9px 12px", cursor: "pointer", borderBottom: "1px solid var(--bd)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div><div style={{ fontWeight: 500, fontSize: 13 }}>{e.razonSocial}</div><div style={{ fontSize: 11, color: "var(--tx3)" }}>RUC: {e.ruc}</div></div>
-                    <Badge t="blue">Seleccionar</Badge>
-                  </div>
-                ))}
-              </div>
-            )}
-            {empBusq.length >= 2 && matches.length === 0 && <div style={{ fontSize: 12, color: "var(--am)", marginTop: 8 }}>⚠ No encontrada. La empresa debe estar registrada en el módulo Contratistas.</div>}
-          </div>
-        )}
-        <div style={{ marginTop: 10 }}>
-          <label style={{ fontSize: 12, color: "var(--tx3)", display: "block", marginBottom: 4 }}>Fecha prevista de llegada *</label>
-          <input type="date" style={SI2} value={fechaLlegada} onChange={e => setFechaLlegada(e.target.value)} />
-        </div>
-      </div>
-      {/* Chofer */}
-      <div style={SC}>
-        <p style={{ fontSize: 12, fontWeight: 600, color: "var(--tx3)", marginBottom: 10 }}>2. Datos del Chofer</p>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <div style={{ gridColumn: "1/-1" }}><label style={{ fontSize: 12, color: "var(--tx3)", display: "block", marginBottom: 4 }}>Nombre completo *</label><input style={SI2} value={chofer.nombre} onChange={e => updC("nombre", e.target.value)} placeholder="Nombres y apellidos" /></div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <label style={{ fontSize: 12, color: "var(--tx3)" }}>Tipo de documento</label>
-            <select style={SI2} value={chofer.tipoDoc} onChange={e => updC("tipoDoc", e.target.value)}><option value="DNI">DNI</option><option value="CE">CE</option><option value="PAS">PAS</option></select>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <label style={{ fontSize: 12, color: "var(--tx3)" }}>N° de documento *</label>
-            <input style={SI2} value={chofer.dni} onChange={e => updC("dni", e.target.value)} placeholder="N° de documento" />
-          </div>
-          <div><label style={{ fontSize: 12, color: "var(--tx3)", display: "block", marginBottom: 4 }}>Teléfono</label><input style={SI2} value={chofer.tel} onChange={e => updC("tel", e.target.value)} placeholder="+51 9xx xxx xxx" /></div>
-          <div><label style={{ fontSize: 12, color: "var(--tx3)", display: "block", marginBottom: 4 }}>Licencia de conducir</label><input style={SI2} value={chofer.licencia} onChange={e => updC("licencia", e.target.value)} placeholder="A-IIb, B-IIb..." /></div>
-          <div><label style={{ fontSize: 12, color: "var(--tx3)", display: "block", marginBottom: 4 }}>N° póliza SCTR</label><input style={SI2} value={chofer.sctrPoliza} onChange={e => updC("sctrPoliza", e.target.value)} placeholder="SCTR-2026-xxxxx" /></div>
-          <div><label style={{ fontSize: 12, color: "var(--tx3)", display: "block", marginBottom: 4 }}>Aseguradora SCTR</label><input style={SI2} value={chofer.sctrAseg} onChange={e => updC("sctrAseg", e.target.value)} placeholder="Ej. Rímac" /></div>
-          <div><label style={{ fontSize: 12, color: "var(--tx3)", display: "block", marginBottom: 4 }}>Vencimiento SCTR</label><input type="date" style={SI2} value={chofer.sctrVenc} onChange={e => updC("sctrVenc", e.target.value)} /></div>
-        </div>
-      </div>
-      {/* Vehículo */}
-      <div style={SC}>
-        <p style={{ fontSize: 12, fontWeight: 600, color: "var(--tx3)", marginBottom: 10 }}>3. Datos del Vehículo</p>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          {[["placa","Placa *","ABC-123"],["marca","Marca / Modelo","Mercedes Benz"],["soat","N° SOAT",""],["soatVenc","Venc. SOAT","date"],["licencia","N° Licencia de circulación",""],["licVenc","Venc. Licencia","date"],["inspeccion","N° Inspección técnica",""],["inspVenc","Venc. Inspección","date"],["seguro","N° Seguro (póliza)",""],["segVenc","Venc. Seguro","date"]].map(([k, lbl, ph]) => (
-            <div key={k} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <label style={{ fontSize: 12, color: "var(--tx3)" }}>{lbl}</label>
-              {ph === "date"
-                ? <input type="date" style={SI2} value={vehiculo[k]} onChange={e => updV(k, e.target.value)} />
-                : <input style={SI2} placeholder={ph} value={vehiculo[k]} onChange={e => updV(k, e.target.value)} />}
-            </div>
-          ))}
-        </div>
-      </div>
-      {/* Mercancía */}
-      <div style={SC}>
-        <p style={{ fontSize: 12, fontWeight: 600, color: "var(--tx3)", marginBottom: 10 }}>4. Datos de la Mercancía</p>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <div><label style={{ fontSize: 12, color: "var(--tx3)", display: "block", marginBottom: 4 }}>N° de PO (Purchase Order) *</label><input style={SI2} value={mercancia.po} onChange={e => setMercancia(m => ({ ...m, po: e.target.value }))} placeholder="PO-2026-xxxxx" /></div>
-          <div style={{ gridColumn: "1/-1" }}><label style={{ fontSize: 12, color: "var(--tx3)", display: "block", marginBottom: 4 }}>Descripción de la mercancía *</label><textarea style={{ ...SI2, resize: "vertical" }} rows={3} value={mercancia.descripcion} onChange={e => setMercancia(m => ({ ...m, descripcion: e.target.value }))} placeholder="Describe el contenido del despacho..." /></div>
-        </div>
-      </div>
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <Btn c="blue" onClick={registrar}>🚛 Registrar Recepción de Despacho</Btn>
-      </div>
-    </div>
-  );
-}
-
 // ── REGISTRO ──────────────────────────────────────────────
-function ModRegistro({ empresas, personas, onRegistrar, onActualizarSctr, irAContratistas, user, onRegistrarDespacho }) {
+function ModRegistro({ empresas, personas, onRegistrar, onActualizarSctr, irAContratistas, user }) {
   const [regTab, setRegTab] = useState("nuevo");
   const [sctrBusq, setSctrBusq] = useState("");
   const [nuevaPoliza, setNuevaPoliza] = useState({ poliza: "", aseg: "", vencimiento: "", personas: [], sctrUrl: "", msg: "" });
   const pLista = Object.values(personas || {});
   const [empSel, setEmpSel] = useState(null);
   const [busq, setBusq] = useState("");
-  const [rows, setRows] = useState([{ dniQ: "", dniStatus: "idle", nombre: "", cargo: "", tipo: "contratista", tipoDoc: "DNI", existingId: null }]);
+  const [rows, setRows] = useState([{ dniQ: "", dniStatus: "idle", nombre: "", cargo: "", tipo: "contratista", existingId: null }]);
   const [form, setForm] = useState({ responsable: "", respEmail: "", respTel: "", tipoVisita: "Contratista - Mantenimiento", fechaIng: today(), diasEnPlanta: 1, poliza: "", aseg: "", sctrFecha: "", sctrUrl: "", registradoPor: "bradken", regNombre: "", regCargo: "" });
   const [emailSim, setEmailSim] = useState(null);
   const [misRegistros, setMisRegistros] = useState([]);  // historial de registros del usuario
@@ -537,7 +423,7 @@ function ModRegistro({ empresas, personas, onRegistrar, onActualizarSctr, irACon
       body: "Estimado/a " + form.responsable + ",\n\nEmpresa: " + empSel.razonSocial + " (RUC: " + empSel.ruc + ")\nFecha prevista: " + form.fechaIng + "\n\nPersonas registradas/actualizadas:\n  " + ids + "\n\nSCTR: " + form.poliza + " — " + form.aseg + " — Vence: " + form.sctrFecha + "\n\nResponsable Bradken: " + form.responsable + " · Tel: " + form.respTel + "\nRegistrado por: " + (form.registradoPor === "bradken" ? form.responsable : form.regNombre + (form.regCargo ? " (" + form.regCargo + ")" : "")) + "\n\nAtentamente,\nControl de Acceso — Bradken Chilca"
     });
     setEmpSel(null); setBusq("");
-    setRows([{ dniQ: "", dniStatus: "idle", nombre: "", cargo: "", tipo: "contratista", tipoDoc: "DNI", existingId: null }]);
+    setRows([{ dniQ: "", dniStatus: "idle", nombre: "", cargo: "", tipo: "contratista", existingId: null }]);
     setForm({ responsable: "", respEmail: "", respTel: "", tipoVisita: "Contratista - Mantenimiento", fechaIng: today(), diasEnPlanta: 1, poliza: "", aseg: "", sctrFecha: "", sctrUrl: "", registradoPor: "bradken", regNombre: "", regCargo: "" });
   };
 
@@ -546,14 +432,10 @@ function ModRegistro({ empresas, personas, onRegistrar, onActualizarSctr, irACon
     <div>
       <p style={{ fontSize: 15, fontWeight: 500, marginBottom: "1rem" }}>Registro de ingreso</p>
       <div style={{ display:"flex", borderBottom:"0.5px solid var(--color-border-tertiary)", marginBottom:"1.5rem" }}>
-        {[["nuevo","📋 Nuevo registro"],["despacho","🚛 Recepción de Despacho"],["misreg","📁 Mis registros"],["sctr","🔄 Gestionar SCTR"]].map(([id,l]) => (
+        {[["nuevo","📋 Nuevo registro"],["misreg","📁 Mis registros"],["sctr","🔄 Gestionar SCTR"]].map(([id,l]) => (
           <div key={id} onClick={() => setRegTab(id)} style={{ padding:"8px 16px", fontSize:13, cursor:"pointer", color: regTab===id ? "var(--color-text-primary)" : "var(--color-text-secondary)", borderBottom: regTab===id ? "2px solid #185FA5" : "2px solid transparent", fontWeight: regTab===id ? 500 : 400, marginBottom:-0.5 }}>{l}</div>
         ))}
       </div>
-
-      {regTab === "despacho" && (
-        <FormDespacho empresas={empresas} onRegistrarDespacho={onRegistrarDespacho} />
-      )}
 
       {regTab === "misreg" && (
         <div>
@@ -812,16 +694,8 @@ function ModRegistro({ empresas, personas, onRegistrar, onActualizarSctr, irACon
 
                 {/* — Búsqueda por documento — */}
                 <div style={{ display: "flex", gap: 8, alignItems: "flex-end", marginBottom: 10 }}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 80 }}>
-                    <label style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>Tipo doc.</label>
-                    <select style={{ ...SI, padding: "7px 6px" }} value={r.tipoDoc || "DNI"} onChange={e => updRI("tipoDoc", e.target.value)}>
-                      <option value="DNI">DNI</option>
-                      <option value="CE">CE</option>
-                      <option value="PAS">PAS</option>
-                    </select>
-                  </div>
                   <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
-                    <label style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>N° de documento *</label>
+                    <label style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>DNI / CE / PAS *</label>
                     <input
                       style={{ ...SI, borderColor: r.dniStatus === "existe" ? "#85B7EB" : r.dniStatus === "nuevo" ? "#97C459" : "var(--color-border-tertiary)" }}
                       placeholder="Ingresa el número de documento..."
@@ -877,7 +751,7 @@ function ModRegistro({ empresas, personas, onRegistrar, onActualizarSctr, irACon
                 )}
                 {r.dniStatus === "listo" && (
                   <div style={{ padding: "6px 12px", background: "#EAF3DE", borderRadius: 8, fontSize: 12, color: "#3B6D11", marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
-                    ✅ <strong>{r.nombre}</strong> · <Badge t="blue">{r.tipoDoc || "DNI"}</Badge> {r.dniQ} · {r.tipo}
+                    ✅ <strong>{r.nombre}</strong> · {r.dniQ} · {r.tipo}
                     <button onClick={() => updRI("dniStatus", r.existingId ? "existe" : "nuevo")} style={{ marginLeft: "auto", background: "transparent", border: "none", cursor: "pointer", fontSize: 11, color: "#185FA5", textDecoration: "underline" }}>Editar</button>
                   </div>
                 )}
@@ -1079,11 +953,8 @@ function ModRegistro({ empresas, personas, onRegistrar, onActualizarSctr, irACon
 }
 
 // ── VIGILANCIA ────────────────────────────────────────────
-function ModVigilancia({ personas, empresas, accesos, equipos, herramientas, despachos, setDespachos, onIngreso, onSalida, onEPP, onAddEq, onSalEq, onAddHer, onSalHer, onShowQR, onVistoBuenoSctr, onInspeccion, onSolicitarBloqueo }) {
+function ModVigilancia({ personas, empresas, accesos, equipos, herramientas, onIngreso, onSalida, onEPP, onAddEq, onSalEq, onAddHer, onSalHer, onShowQR, onVistoBuenoSctr, onInspeccion, onSolicitarBloqueo }) {
   const [tab, setTab] = useState("programados");
-  const [agenteNombre, setAgenteNombre] = useState("");
-  const [agenteConfirmado, setAgenteConfirmado] = useState(false);
-  const [modalAgente, setModalAgente] = useState(null); // { accion, onConfirm }
   const [q, setQ] = useState("");
   const [eqF, setEqF] = useState({ desc: "", serie: "", empId: "", opDni: "", opId: "", docs: { SOAT: false, "Revisión técnica": false, "Permiso de operación": false } });
   const [showEq, setShowEq] = useState(false);
@@ -1091,9 +962,6 @@ function ModVigilancia({ personas, empresas, accesos, equipos, herramientas, des
   const [hOperador, setHOperador] = useState("");
   const [showH, setShowH] = useState(false);
   const [salidaFlujo, setSalidaFlujo] = useState({});  // pid -> "maq"|"her"|"confirm"|null
-  const [incidentesIngreso, setIncidentesIngreso] = useState([]);
-  const [incidenteForm, setIncidenteForm] = useState({ dniQ: "", personaId: "", nombre: "", empresa: "", causas: { epp: false, alcohol: false, armas: false, otro: false }, detalle: "" });
-  const [incidenteTab, setIncidenteTab] = useState("registrar");
   const [salidaConfs, setSalidaConfs] = useState({});  // pid -> { maqOk, herOk: {hid: bool} }
   const [sctrVisto, setSctrVisto] = useState({}); // pid -> true cuando abrió el PDF
   const [inspecPaso, setInspecPaso] = useState({});
@@ -1102,15 +970,6 @@ function ModVigilancia({ personas, empresas, accesos, equipos, herramientas, des
   const [flujoEq, setFlujoEq] = useState({});   // pid -> { desc, serie, docs }
   const [flujoHer, setFlujoHer] = useState({});  // pid -> [{ desc, cant }]
   const [flujoQ, setFlujoQ] = useState({});      // pid -> { traeMaq: null, traeHer: null }
-
-  // Helper: pide nombre del agente antes de ejecutar una acción
-  const conAgente = (descripcion, onConfirm) => {
-    if (agenteConfirmado && agenteNombre.trim()) {
-      onConfirm(agenteNombre);
-    } else {
-      setModalAgente({ descripcion, onConfirm });
-    }
-  };
 
   const pLista = Object.values(personas);
   const empActivas = Object.values(empresas).filter(e => e.estado !== "bloqueado");
@@ -1157,7 +1016,7 @@ function ModVigilancia({ personas, empresas, accesos, equipos, herramientas, des
             <Avt nombre={p.nombre} color={p.color} size={40} />
             <div style={{ flex: 1, minWidth: 160 }}>
               <div style={{ fontWeight: 500, fontSize: 14 }}>{p.nombre}</div>
-              <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>{p.cargo || "—"} · {(emp && emp.razonSocial) || "—"} · {p.tipoDoc || "DNI"} {p.dni || "—"}</div>
+              <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>{p.cargo || "—"} · {(emp && emp.razonSocial) || "—"} · DNI {p.dni || "—"}</div>
               <div style={{ marginTop: 4, display: "flex", gap: 5, flexWrap: "wrap" }}>
                 <Badge t={bt}>{bl}</Badge>
                 {p.fechaPrevista && (
@@ -1184,7 +1043,7 @@ function ModVigilancia({ personas, empresas, accesos, equipos, herramientas, des
                 ? <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 12px", background: "#EAF3DE", borderRadius: 8, fontSize: 12, color: "#3B6D11", fontWeight: 500 }}>✅ SCTR conforme</div>
                 : sctrVisto[p.id]
                   ? (
-                    <button onClick={() => conAgente("Verificar SCTR de " + p.nombre, (agente) => onVistoBuenoSctr(p.id, agente))} disabled={sc === "vencido"} style={{ padding: "6px 12px", fontSize: 12, fontWeight: 500, background: sc === "vencido" ? "#A32D2D" : "#3B6D11", color: "#fff", border: "none", borderRadius: 8, cursor: sc === "vencido" ? "not-allowed" : "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                    <button onClick={() => onVistoBuenoSctr(p.id)} disabled={sc === "vencido"} style={{ padding: "6px 12px", fontSize: 12, fontWeight: 500, background: sc === "vencido" ? "#A32D2D" : "#3B6D11", color: "#fff", border: "none", borderRadius: 8, cursor: sc === "vencido" ? "not-allowed" : "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
                       <span>☑ Marcar SCTR conforme</span>
                       {sc === "vencido" && <span style={{ fontSize: 10, opacity: 0.85 }}>Vencido — no puede ingresar</span>}
                     </button>
@@ -1281,8 +1140,14 @@ function ModVigilancia({ personas, empresas, accesos, equipos, herramientas, des
     const objetosOk = !data.objetos.armas && !data.objetos.otros;
 
     // ── PASOS DINÁMICOS SEGÚN CATEGORÍA ──────────────────────
-    // Maquinaria y Herramientas se gestionan en sus propios módulos
-    const PASOS = ["sctr","autorizar","done"];
+    // induccion: sctr → epp → alcohol → objetos → autorizar
+    // contratista: sctr → epp → alcohol → objetos → maquinaria → herramientas → autorizar
+    // visitante: sctr → epp → alcohol → objetos → herramientas → autorizar
+    const PASOS = tipo === "induccion"
+      ? ["sctr","epp","alcohol","objetos","autorizar","done"]
+      : tipo === "visitante"
+        ? ["sctr","epp","alcohol","objetos","herramientas","autorizar","done"]
+        : ["sctr","epp","alcohol","objetos","maquinaria","herramientas","autorizar","done"]; // contratista
     const pasoIdx = PASOS.indexOf(paso);
 
     // ── BLOQUEOS ABSOLUTOS (impiden iniciar el flujo) ────────
@@ -1307,13 +1172,6 @@ function ModVigilancia({ personas, empresas, accesos, equipos, herramientas, des
       if (personaBloqueada) lista.push({ icon: "🚫", color: "#A32D2D", bg: "#FCEBEB", msg: "Trabajador suspendido.", sub: p.motivoBloqueo ? "Motivo: " + p.motivoBloqueo : "Solicitar detalles al Administrador." });
       if (empresaBloqueada) lista.push({ icon: "⛔", color: "#A32D2D", bg: "#FCEBEB", msg: "Empresa bloqueada.", sub: (emp.observacion || "Sin detalle.") });
       if (plantaVencida) lista.push({ icon: "📅", color: "#854F0B", bg: "#FAEEDA", msg: "Registro vencido — días en planta agotados.", sub: "Venció el " + p.fechaVencPlanta + ". Debe pasar por Registro nuevamente para renovar su autorización." });
-      // Cambio 5: Bloqueo por fecha prevista de ingreso
-      if (p.fechaPrevista && p.fechaPrevista > today()) lista.push({ icon: "🔒", color: "#854F0B", bg: "#FAEEDA", msg: "Ingreso no habilitado aún.", sub: "La fecha de ingreso registrada es " + p.fechaPrevista + ". No puede ingresar antes de esa fecha." });
-      // Cambio 4: Bloqueo por SCTR
-      if (!p.sctr || !p.sctr.poliza) lista.push({ icon: "📋", color: "#A32D2D", bg: "#FCEBEB", msg: "Sin SCTR registrado.", sub: "La persona no tiene póliza SCTR en el sistema. El coordinador debe registrarla antes de ingresar." });
-      else if (sc === "vencido") lista.push({ icon: "📋", color: "#A32D2D", bg: "#FCEBEB", msg: "SCTR vencido — no puede ingresar.", sub: "Venció el " + (p.sctr.vencimiento || "—") + ". El coordinador debe actualizar la póliza." });
-      else if (!p.sctrVerificado) lista.push({ icon: "📋", color: "#854F0B", bg: "#FAEEDA", msg: "SCTR no verificado por Vigilancia.", sub: "El agente de vigilancia debe verificar el documento SCTR en la pestaña Programados antes de autorizar el ingreso." });
-      // Cambio 4: Bloqueo por inducción
       if (tipo === "contratista" && !indOk) lista.push({ icon: "📋", color: "#854F0B", bg: "#FAEEDA", msg: "Sin inducción de sitio vigente.", sub: ind === "vencido" ? "Vencida — debe renovar con Safety." : "Sin inducción registrada — debe completar la charla primero." });
       if (tipo === "visitante" && !capOk) lista.push({ icon: "🖥", color: "#854F0B", bg: "#FAEEDA", msg: "Sin aprobación de curso virtual.", sub: "Safety debe aprobar la capacitación virtual antes del ingreso." });
       return lista;
@@ -1363,7 +1221,7 @@ function ModVigilancia({ personas, empresas, accesos, equipos, herramientas, des
           <Avt nombre={p.nombre} color={p.color} size={48} />
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 500, fontSize: 15 }}>{p.nombre}</div>
-            <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>{p.cargo || "Sin cargo"} · {(emp && emp.razonSocial) || "—"} · {p.tipoDoc || "DNI"} {p.dni || "—"}</div>
+            <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>{p.cargo || "Sin cargo"} · {(emp && emp.razonSocial) || "—"} · DNI {p.dni || "—"}</div>
             <div style={{ marginTop: 4, display: "flex", gap: 6, flexWrap: "wrap" }}>
               <Badge t={badgeT}>{badgeL}</Badge>
               <IDB id={p.id} />
@@ -1450,14 +1308,76 @@ function ModVigilancia({ personas, empresas, accesos, equipos, herramientas, des
                   {p.sctrVerificado
                     ? <Btn c="green" onClick={() => setPaso(p.id, siguientePaso("sctr"))}>Continuar →</Btn>
                     : sc !== "vencido"
-                      ? <Btn c="green" onClick={() => conAgente("Verificar SCTR de " + p.nombre, (agente) => { onVistoBuenoSctr(p.id, agente); setPaso(p.id, siguientePaso("sctr")); })}>☑ SCTR conforme — continuar</Btn>
+                      ? <Btn c="green" onClick={() => { onVistoBuenoSctr(p.id); setPaso(p.id, siguientePaso("sctr")); }}>☑ SCTR conforme — continuar</Btn>
                       : <Btn c="amber" onClick={() => setPaso(p.id, siguientePaso("sctr"))}>Continuar con observación</Btn>
                   }
                 </div>
               </div>
             )}
 
-            {/* EPP/ALCOHOL/ARMAS se gestionan ahora en "Incidente de Ingreso" */}
+            {/* PASO 2: EPP */}
+            {paso === "epp" && (
+              <div style={SC}>
+                <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>2. Inspección de EPP</p>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 12 }}>
+                  {eppKeys.map(k => (
+                    <div key={k} onClick={() => setData(p.id, d => ({ ...d, epp: { ...d.epp, [k]: !d.epp[k] } }))} style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 12px", border: "0.5px solid " + (data.epp[k] ? "#97C459" : "var(--color-border-tertiary)"), borderRadius: 8, cursor: "pointer", background: data.epp[k] ? "#EAF3DE" : "var(--color-background-primary)", fontSize: 13 }}>
+                      <div style={{ width: 18, height: 18, borderRadius: 4, background: data.epp[k] ? "#3B6D11" : "transparent", border: data.epp[k] ? "0.5px solid #3B6D11" : "0.5px solid var(--color-border-secondary)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#fff", flexShrink: 0 }}>{data.epp[k] ? "✓" : ""}</div>
+                      {eppLabels[k]}
+                    </div>
+                  ))}
+                </div>
+                {!eppOk && <div style={{ padding: "6px 10px", background: "#FAEEDA", borderRadius: 6, fontSize: 12, color: "#854F0B", marginBottom: 8 }}>⚠ Marca todos los ítems de EPP para continuar.</div>}
+                <div style={{ display: "flex", gap: 8 }}>
+                  <Btn sm onClick={() => setPaso(p.id, anteriorPaso("epp"))}>← Atrás</Btn>
+                  <Btn c="green" disabled={!eppOk} onClick={() => setPaso(p.id, siguientePaso("epp"))}>✔ EPP conforme — continuar</Btn>
+                </div>
+              </div>
+            )}
+
+            {/* PASO 3: ALCOHOL TEST */}
+            {paso === "alcohol" && (
+              <div style={SC}>
+                <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>3. Alcohol test</p>
+                <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
+                  {["negativo","positivo"].map(r => (
+                    <div key={r} onClick={() => setData(p.id, d => ({ ...d, alcohol: r }))} style={{ flex: 1, padding: "14px 12px", border: "0.5px solid " + (data.alcohol === r ? (r === "negativo" ? "#97C459" : "#F09595") : "var(--color-border-tertiary)"), borderRadius: 10, cursor: "pointer", textAlign: "center", background: data.alcohol === r ? (r === "negativo" ? "#EAF3DE" : "#FCEBEB") : "var(--color-background-primary)" }}>
+                      <div style={{ fontSize: 20, marginBottom: 4 }}>{r === "negativo" ? "✅" : "🚫"}</div>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: data.alcohol === r ? (r === "negativo" ? "#3B6D11" : "#A32D2D") : "var(--color-text-secondary)", textTransform: "capitalize" }}>{r}</div>
+                    </div>
+                  ))}
+                </div>
+                {data.alcohol === "positivo" && <div style={{ padding: "8px 12px", background: "#FCEBEB", borderRadius: 8, fontSize: 12, color: "#A32D2D", marginBottom: 10 }}>⛔ Resultado positivo. No puede ingresar. Registrar en Bitácora.</div>}
+                <div style={{ display: "flex", gap: 8 }}>
+                  <Btn sm onClick={() => setPaso(p.id, anteriorPaso("alcohol"))}>← Atrás</Btn>
+                  {data.alcohol === "negativo" && <Btn c="green" onClick={() => setPaso(p.id, siguientePaso("alcohol"))}>✔ Continuar</Btn>}
+                  {data.alcohol === "positivo" && <Btn c="red" onClick={() => { onInspeccion(p.id, { epp: data.epp, alcoholTest: "positivo", objetosExtranos: data.objetos }); resetFlujo(); }}>⛔ Registrar rechazo</Btn>}
+                </div>
+              </div>
+            )}
+
+            {/* PASO 4: OBJETOS EXTRAÑOS */}
+            {paso === "objetos" && (
+              <div style={SC}>
+                <p style={{ fontSize: 13, fontWeight: 500, marginBottom: 10 }}>4. Objetos extraños</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+                  {[["armas","🔫 Armas de fuego o blancas"],["otros","📦 Otros objetos no autorizados"]].map(([k, lbl]) => (
+                    <div key={k} onClick={() => setData(p.id, d => ({ ...d, objetos: { ...d.objetos, [k]: !d.objetos[k] } }))} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", border: "0.5px solid " + (data.objetos[k] ? "#F09595" : "var(--color-border-tertiary)"), borderRadius: 8, cursor: "pointer", background: data.objetos[k] ? "#FCEBEB" : "var(--color-background-primary)" }}>
+                      <div style={{ width: 20, height: 20, borderRadius: 4, background: data.objetos[k] ? "#A32D2D" : "transparent", border: data.objetos[k] ? "0.5px solid #A32D2D" : "0.5px solid var(--color-border-secondary)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#fff", flexShrink: 0 }}>{data.objetos[k] ? "✓" : ""}</div>
+                      <span style={{ fontSize: 13, color: data.objetos[k] ? "#A32D2D" : "var(--color-text-primary)", fontWeight: data.objetos[k] ? 500 : 400 }}>{lbl}</span>
+                    </div>
+                  ))}
+                </div>
+                {!objetosOk && <div style={{ padding: "8px 12px", background: "#FCEBEB", borderRadius: 8, fontSize: 12, color: "#A32D2D", marginBottom: 10 }}>⛔ Objetos no permitidos detectados. No puede ingresar. Registrar en Bitácora.</div>}
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <Btn sm onClick={() => setPaso(p.id, anteriorPaso("objetos"))}>← Atrás</Btn>
+                  {objetosOk
+                    ? <Btn c="green" onClick={() => { onInspeccion(p.id, { epp: data.epp, alcoholTest: "negativo", objetosExtranos: data.objetos }); setPaso(p.id, siguientePaso("objetos")); }}>✔ Sin objetos — continuar</Btn>
+                    : <Btn c="red" onClick={() => { onInspeccion(p.id, { epp: data.epp, alcoholTest: "negativo", objetosExtranos: data.objetos }); resetFlujo(); }}>⛔ Registrar rechazo</Btn>
+                  }
+                </div>
+              </div>
+            )}
 
             {paso === "autorizar" && (
               <div style={SC}>
@@ -1484,11 +1404,11 @@ function ModVigilancia({ personas, empresas, accesos, equipos, herramientas, des
 
                 {/* Botón de autorización — deshabilitado si hay bloqueo */}
                 {!bloqueoPorCategoria.bloqueado && tipo === "contratista" &&
-                  <Btn c="green" onClick={() => conAgente("Autorizar ingreso de " + p.nombre, (agente) => { onIngreso(p.id, "Trabajos en planta", agente); setPaso(p.id, "done"); })}>🔧 Autorizar — Trabajos en planta</Btn>}
+                  <Btn c="green" onClick={() => { onIngreso(p.id, "Trabajos en planta"); setPaso(p.id, "done"); }}>🔧 Autorizar — Trabajos en planta</Btn>}
                 {!bloqueoPorCategoria.bloqueado && tipo === "induccion" &&
-                  <Btn c="amber" onClick={() => conAgente("Autorizar ingreso de " + p.nombre, (agente) => { onIngreso(p.id, "Inducción de sitio", agente); setPaso(p.id, "done"); })}>📚 Autorizar — Inducción de sitio</Btn>}
+                  <Btn c="amber" onClick={() => { onIngreso(p.id, "Inducción de sitio"); setPaso(p.id, "done"); }}>📚 Autorizar — Inducción de sitio</Btn>}
                 {!bloqueoPorCategoria.bloqueado && tipo === "visitante" &&
-                  <Btn c="blue" onClick={() => conAgente("Autorizar ingreso de " + p.nombre, (agente) => { onIngreso(p.id, "Visita", agente); setPaso(p.id, "done"); })}>✅ Autorizar — Visita</Btn>}
+                  <Btn c="blue" onClick={() => { onIngreso(p.id, "Visita"); setPaso(p.id, "done"); }}>✅ Autorizar — Visita</Btn>}
 
                 <div style={{ marginTop: 8 }}><Btn sm onClick={() => setPaso(p.id, anteriorPaso("autorizar"))}>← Atrás</Btn></div>
               </div>
@@ -1614,55 +1534,9 @@ function ModVigilancia({ personas, empresas, accesos, equipos, herramientas, des
 
   return (
     <div>
-      {/* ── MODAL NOMBRE AGENTE ── */}
-      {modalAgente && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
-          <div style={{ background: "var(--color-background-primary)", borderRadius: 16, padding: 28, width: "100%", maxWidth: 420, boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }}>
-            <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 8 }}>🛡 Identificación del agente</div>
-            <p style={{ fontSize: 13, color: "var(--color-text-secondary)", marginBottom: 16 }}>
-              Acción: <strong>{modalAgente.descripcion}</strong><br />
-              Ingresa tu nombre completo para registrar esta acción.
-            </p>
-            <input
-              autoFocus
-              style={{ ...SI, marginBottom: 16 }}
-              placeholder="Nombres y apellidos..."
-              value={agenteNombre}
-              onChange={e => setAgenteNombre(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === "Enter" && agenteNombre.trim().length >= 3) {
-                  setAgenteConfirmado(true);
-                  modalAgente.onConfirm(agenteNombre.trim());
-                  setModalAgente(null);
-                }
-              }}
-            />
-            <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => setModalAgente(null)} style={{ flex: 1, padding: "9px 0", background: "var(--color-background-secondary)", border: "1px solid var(--color-border-secondary)", borderRadius: 8, cursor: "pointer", fontSize: 13 }}>Cancelar</button>
-              <button onClick={() => {
-                if (agenteNombre.trim().length < 3) { alert("Ingresa tu nombre completo."); return; }
-                setAgenteConfirmado(true);
-                modalAgente.onConfirm(agenteNombre.trim());
-                setModalAgente(null);
-              }} style={{ flex: 2, padding: "9px 0", background: "#1B5CA8", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600 }}>✔ Confirmar y registrar</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── BANNER AGENTE ACTIVO ── */}
-      {agenteConfirmado && (
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 16px", background: "#EAF3DE", border: "1px solid #A3D4B5", borderRadius: 10, marginBottom: "1rem" }}>
-          <span style={{ fontSize: 16 }}>🛡</span>
-          <span style={{ fontSize: 12, color: "#3B6D11", fontWeight: 600 }}>Agente en turno:</span>
-          <span style={{ fontSize: 13, color: "#1A2332", fontWeight: 500, flex: 1 }}>{agenteNombre}</span>
-          <button onClick={() => { setAgenteConfirmado(false); setAgenteNombre(""); }} style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 11, color: "#3B6D11", textDecoration: "underline" }}>Cambiar</button>
-        </div>
-      )}
-
       {/* Modal visor PDF SCTR */}
 
-      <TabBar tabs={[["programados","📅 Programados"],["verificar","🔍 Verificar"],["activos","✅ En planta"],["equipos","⚙ Maquinaria"],["herramientas","🔧 Herramientas"],["incidentes","⚠ Incidente Ingreso"],["despachos","🚛 Despachos"],["historial","📋 Historial"]]} active={tab} onSelect={setTab} />
+      <TabBar tabs={[["programados","📅 Programados"],["verificar","🔍 Verificar"],["activos","✅ En planta"],["equipos","⚙ Maquinaria"],["herramientas","🔧 Herramientas"],["historial","📋 Historial"]]} active={tab} onSelect={setTab} />
 
       {tab === "programados" && <TabProgramados />}
 
@@ -1714,7 +1588,7 @@ function ModVigilancia({ personas, empresas, accesos, equipos, herramientas, des
                           {a.tipoIngreso === "Inducción de sitio" && (() => {
                             const ind = p ? indSt(p.ind || p.induccion) : "none";
                             return (ind === "vigente" || ind === "proximo")
-                              ? <Btn c="green" sm onClick={() => conAgente("Cambiar a Trabajos en planta a " + (personas[a.pid]?.nombre || a.nombre), (agente) => onIngreso(a.pid, "Trabajos en planta", agente))}>🔧 Safety aprobó — pasar a Trabajos</Btn>
+                              ? <Btn c="green" sm onClick={() => onIngreso(a.pid, "Trabajos en planta")}>🔧 Safety aprobó — pasar a Trabajos</Btn>
                               : null;
                           })()}
                         </div>
@@ -1725,7 +1599,7 @@ function ModVigilancia({ personas, empresas, accesos, equipos, herramientas, des
                           if (tieneVinc) {
                             setSalidaPaso(eqVinc.length > 0 ? "maq" : "her");
                           } else {
-                            conAgente("Registrar salida de " + a.nombre, (agente) => onSalida(a.pid, agente));
+                            onSalida(a.pid);
                           }
                         }}>🚪 Registrar salida</Btn>
                       )}
@@ -1828,11 +1702,9 @@ function ModVigilancia({ personas, empresas, accesos, equipos, herramientas, des
                             <div style={{ display: "flex", gap: 8 }}>
                               <Btn sm onClick={() => setSalidaPaso(herVinc.length > 0 ? "her" : "maq")}>← Atrás</Btn>
                               <Btn c="red" onClick={() => {
-                                conAgente("Confirmar salida total de " + a.nombre, (agente) => {
-                                  onSalida(a.pid, agente);
-                                  setSalidaFlujo(prev => { const n = { ...prev }; delete n[a.pid]; return n; });
-                                  setSalidaConfs(prev => { const n = { ...prev }; delete n[a.pid]; return n; });
-                                });
+                                onSalida(a.pid);
+                                setSalidaFlujo(prev => { const n = { ...prev }; delete n[a.pid]; return n; });
+                                setSalidaConfs(prev => { const n = { ...prev }; delete n[a.pid]; return n; });
                               }}>🚪 Confirmar salida total</Btn>
                             </div>
                           </div>
@@ -1848,31 +1720,26 @@ function ModVigilancia({ personas, empresas, accesos, equipos, herramientas, des
 
       {tab === "equipos" && (
         <div>
-          <p style={{ fontSize: 15, fontWeight: 500, marginBottom: "1rem" }}>⚙ Maquinaria y equipos</p>
-          {/* Buscador de persona para registrar maquinaria */}
-          <RegistradorEquipo personas={personas} empresas={empresas} equipos={equipos} onAddEq={eq => { onAddEq(eq); }} />
-          <div style={{ overflowX: "auto", marginTop: "1rem" }}>
-            <p style={{ fontSize: 12, fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: 8 }}>Registro actual de maquinaria</p>
+          <p style={{ fontSize: 15, fontWeight: 500, marginBottom: 4 }}>⚙ Maquinaria y equipos</p>
+          <div style={{ padding: "8px 12px", background: "#E6F1FB", borderRadius: 8, fontSize: 12, color: "#185FA5", marginBottom: "1rem" }}>ℹ Las salidas de maquinaria se gestionan desde el módulo <strong>En planta</strong>.</div>
+          <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead><tr>{["ID","Descripción","Placa/Serie","Empresa","Operador (Identificación)","Docs","Ingreso","Salida","Estado"].map(h => <th key={h} style={STH}>{h}</th>)}</tr></thead>
+              <thead><tr>{["ID","Descripción","Placa/Serie","Empresa","Operador","Docs","Ingreso","Salida","Estado"].map(h => <th key={h} style={STH}>{h}</th>)}</tr></thead>
               <tbody>
                 {equipos.length === 0 ? <tr><td colSpan={9} style={{ padding: "2rem", textAlign: "center", color: "var(--color-text-secondary)" }}>Sin equipos registrados.</td></tr>
-                  : equipos.map(eq => {
-                    const op = Object.values(personas).find(p => p.id === eq.opId);
-                    return (
-                      <tr key={eq.id}>
-                        <td style={STD}><span style={{ background: "#FAEEDA", color: "#854F0B", padding: "2px 7px", borderRadius: 6, fontSize: 11, fontWeight: 500 }}>⚙ {eq.id}</span></td>
-                        <td style={{ ...STD, fontWeight: 500 }}>{eq.desc}</td>
-                        <td style={STD}>{eq.serie}</td>
-                        <td style={STD}>{eq.empNombre || "—"}</td>
-                        <td style={STD}>{eq.opNombre || "—"}{op ? <div style={{ fontSize: 10, color: "var(--color-text-secondary)" }}>{op.tipoDoc || "DNI"}: {op.dni}</div> : null}</td>
-                        <td style={STD}><Badge t={DOCS_EQ.every(d => eq.docs[d]) ? "green" : "amber"}>{DOCS_EQ.every(d => eq.docs[d]) ? "Completos" : "Incompletos"}</Badge></td>
-                        <td style={STD}>{new Date(eq.ingreso).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}</td>
-                        <td style={STD}>{eq.salida ? new Date(eq.salida).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }) : "—"}</td>
-                        <td style={STD}><Badge t={eq.salida ? "green" : "amber"}>{eq.salida ? "Retirado" : "En planta"}</Badge></td>
-                      </tr>
-                    );
-                  })}
+                  : equipos.map(eq => (
+                    <tr key={eq.id}>
+                      <td style={STD}><span style={{ background: "#FAEEDA", color: "#854F0B", padding: "2px 7px", borderRadius: 6, fontSize: 11, fontWeight: 500 }}>⚙ {eq.id}</span></td>
+                      <td style={{ ...STD, fontWeight: 500 }}>{eq.desc}</td>
+                      <td style={STD}>{eq.serie}</td>
+                      <td style={STD}>{eq.empNombre || "—"}</td>
+                      <td style={STD}>{eq.opNombre || "—"}</td>
+                      <td style={STD}><Badge t={DOCS_EQ.every(d => eq.docs[d]) ? "green" : "amber"}>{DOCS_EQ.every(d => eq.docs[d]) ? "Completos" : "Incompletos"}</Badge></td>
+                      <td style={STD}>{new Date(eq.ingreso).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}</td>
+                      <td style={STD}>{eq.salida ? new Date(eq.salida).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }) : "—"}</td>
+                      <td style={STD}><Badge t={eq.salida ? "green" : "amber"}>{eq.salida ? "Retirado" : "En planta"}</Badge></td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
@@ -1881,55 +1748,28 @@ function ModVigilancia({ personas, empresas, accesos, equipos, herramientas, des
 
       {tab === "herramientas" && (
         <div>
-          <p style={{ fontSize: 15, fontWeight: 500, marginBottom: "1rem" }}>🔧 Herramientas</p>
-          {/* Buscador de persona para registrar herramientas */}
-          <RegistradorHerramienta personas={personas} empresas={empresas} herramientas={herramientas} onAddHer={h => { onAddHer(h); }} />
-          <div style={{ overflowX: "auto", marginTop: "1rem" }}>
-            <p style={{ fontSize: 12, fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: 8 }}>Registro actual de herramientas</p>
+          <p style={{ fontSize: 15, fontWeight: 500, marginBottom: 4 }}>🔧 Herramientas</p>
+          <div style={{ padding: "8px 12px", background: "#E6F1FB", borderRadius: 8, fontSize: 12, color: "#185FA5", marginBottom: "1rem" }}>ℹ Las salidas de herramientas se gestionan desde el módulo <strong>En planta</strong>.</div>
+          <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead><tr>{["ID","Herramienta","Cant.","Operador","N° Documento","Ingreso","Salida","Estado"].map(h => <th key={h} style={STH}>{h}</th>)}</tr></thead>
+              <thead><tr>{["ID","Herramienta","Cant.","Operador","Ingreso","Salida","Estado"].map(h => <th key={h} style={STH}>{h}</th>)}</tr></thead>
               <tbody>
-                {herramientas.length === 0 ? <tr><td colSpan={8} style={{ padding: "2rem", textAlign: "center", color: "var(--color-text-secondary)" }}>Sin herramientas registradas.</td></tr>
-                  : herramientas.map(h => {
-                    const op = Object.values(personas).find(p => p.id === h.operadorId);
-                    return (
-                      <tr key={h.id}>
-                        <td style={STD}><span style={{ background: "#E1F5EE", color: "#0F6E56", padding: "2px 7px", borderRadius: 6, fontSize: 11, fontWeight: 500 }}>🔧 {h.id}</span></td>
-                        <td style={{ ...STD, fontWeight: 500 }}>{h.desc}</td>
-                        <td style={STD}>{h.cant}</td>
-                        <td style={STD}>{h.operador || "—"}</td>
-                        <td style={{ ...STD, fontFamily: "var(--mono)", fontSize: 12 }}>{op ? (op.tipoDoc || "DNI") + ": " + op.dni : (h.operadorDni || "—")}</td>
-                        <td style={STD}>{new Date(h.ingreso).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}</td>
-                        <td style={STD}>{h.salida ? new Date(h.salida).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }) : "—"}</td>
-                        <td style={STD}><Badge t={h.salida ? "green" : "amber"}>{h.salida ? "Retirada" : "En planta"}</Badge></td>
-                      </tr>
-                    );
-                  })}
+                {herramientas.length === 0 ? <tr><td colSpan={7} style={{ padding: "2rem", textAlign: "center", color: "var(--color-text-secondary)" }}>Sin herramientas registradas.</td></tr>
+                  : herramientas.map(h => (
+                    <tr key={h.id}>
+                      <td style={STD}><span style={{ background: "#E1F5EE", color: "#0F6E56", padding: "2px 7px", borderRadius: 6, fontSize: 11, fontWeight: 500 }}>🔧 {h.id}</span></td>
+                      <td style={{ ...STD, fontWeight: 500 }}>{h.desc}</td>
+                      <td style={STD}>{h.cant}</td>
+                      <td style={STD}>{h.operador || "—"}</td>
+                      <td style={STD}>{new Date(h.ingreso).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}</td>
+                      <td style={STD}>{h.salida ? new Date(h.salida).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }) : "—"}</td>
+                      <td style={STD}><Badge t={h.salida ? "green" : "amber"}>{h.salida ? "Retirada" : "En planta"}</Badge></td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
         </div>
-      )}
-
-      {tab === "incidentes" && (
-        <TabIncidenteIngreso
-          personas={personas} empresas={empresas}
-          incidentesIngreso={incidentesIngreso}
-          onRegistrar={(inc) => {
-            setIncidentesIngreso(prev => [{ ...inc, id: "INC-" + String(Date.now()).slice(-4), fecha: today(), hora: nowTime() }, ...prev]);
-            // Bloquear persona si se marcó como bloquear
-            if (inc.bloquear) onSolicitarBloqueo(inc.personaId, { nombre: inc.nombre, motivo: "Incidente de Ingreso: " + inc.causasTexto, fecha: today(), solicitante: "Vigilancia" });
-          }}
-        />
-      )}
-
-      {tab === "despachos" && (
-        <TabDespachos
-          personas={personas} empresas={empresas}
-          despachos={despachos}
-          onIngresoDespacho={(id, guia, hora) => setDespachos(prev => prev.map(d => d.id === id ? { ...d, guia, ingresoHora: hora, estado: "En planta" } : d))}
-          onSalidaDespacho={(id, hora) => setDespachos(prev => prev.map(d => d.id === id ? { ...d, salidaHora: hora, estado: "Salió" } : d))}
-        />
       )}
 
       {tab === "historial" && (
@@ -1937,7 +1777,7 @@ function ModVigilancia({ personas, empresas, accesos, equipos, herramientas, des
           <p style={{ fontSize: 15, fontWeight: 500, marginBottom: "1rem" }}>Historial de accesos</p>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead><tr>{["ID","Nombre","Empresa","Tipo ingreso","Agente ingreso","Ingreso","Agente salida","Salida","Duración"].map(h => <th key={h} style={STH}>{h}</th>)}</tr></thead>
+              <thead><tr>{["ID","Nombre","Empresa","Tipo ingreso","Ingreso","Salida","Duración"].map(h => <th key={h} style={STH}>{h}</th>)}</tr></thead>
               <tbody>
                 {accesos.length === 0 ? <tr><td colSpan={7} style={{ padding: "2rem", textAlign: "center", color: "var(--color-text-secondary)" }}>Sin historial.</td></tr>
                   : accesos.map((a, i) => {
@@ -1948,9 +1788,7 @@ function ModVigilancia({ personas, empresas, accesos, equipos, herramientas, des
                         <td style={{ ...STD, fontWeight: 500 }}>{a.nombre}</td>
                         <td style={STD}>{a.empresa}</td>
                         <td style={STD}><Badge t={a.tipoIngreso === "Trabajos en planta" ? "green" : a.tipoIngreso === "Visita" ? "blue" : "amber"}>{a.tipoIngreso}</Badge></td>
-                        <td style={{ ...STD, fontSize: 11, color: "var(--color-text-secondary)" }}>{a.agente || a.agente_ingreso || "—"}</td>
                         <td style={STD}>{ing.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}</td>
-                        <td style={{ ...STD, fontSize: 11, color: "var(--color-text-secondary)" }}>{a.agenteSalida || a.agente_salida || "—"}</td>
                         <td style={STD}>{sal ? sal.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }) : "—"}</td>
                         <td style={STD}>{sal ? Math.floor((sal - ing) / 60000) + " min" : "En planta"}</td>
                       </tr>
@@ -1961,336 +1799,6 @@ function ModVigilancia({ personas, empresas, accesos, equipos, herramientas, des
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-// ── REGISTRADOR MAQUINARIA (busca persona por n° de identificación) ──────────
-function RegistradorEquipo({ personas, empresas, equipos, onAddEq }) {
-  const [busqDoc, setBusqDoc] = useState("");
-  const [personaSel, setPersonaSel] = useState(null);
-  const [form, setForm] = useState({ desc: "", serie: "", docs: { SOAT: false, "Revisión técnica": false, "Permiso de operación": false } });
-  const [ok, setOk] = useState("");
-  const pLista = Object.values(personas);
-  const upd = (k, v) => setForm(f => ({ ...f, [k]: v }));
-  const matches = busqDoc.length >= 4 ? pLista.filter(p => p.dni && p.dni.includes(busqDoc)) : [];
-  const registrar = () => {
-    if (!personaSel) { alert("Busca y selecciona una persona."); return; }
-    if (!form.desc.trim()) { alert("Ingresa la descripción del equipo."); return; }
-    if (!form.serie.trim()) { alert("Ingresa N° de serie o placa."); return; }
-    const emp = empresas[personaSel.empId];
-    onAddEq({ ...form, id: "EQ-" + String(Date.now()).slice(-4), empId: personaSel.empId, empNombre: (emp && emp.razonSocial) || "—", opNombre: personaSel.nombre, opDni: personaSel.dni, opId: personaSel.id, pid: personaSel.id, ingreso: new Date().toISOString(), salida: null });
-    setOk("Equipo registrado para " + personaSel.nombre);
-    setPersonaSel(null); setBusqDoc(""); setForm({ desc: "", serie: "", docs: { SOAT: false, "Revisión técnica": false, "Permiso de operación": false } });
-    setTimeout(() => setOk(""), 4000);
-  };
-  return (
-    <div style={{ ...SC, marginBottom: "1rem" }}>
-      <p style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: 10 }}>Registrar maquinaria — buscar responsable por N° de documento</p>
-      {ok && <div style={{ padding: "8px 12px", background: "#EAF3DE", borderRadius: 8, fontSize: 12, color: "#3B6D11", marginBottom: 10 }}>✅ {ok}</div>}
-      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-        <input style={{ ...SI, flex: 1 }} placeholder="N° DNI / CE / PAS del operador..." value={busqDoc} onChange={e => { setBusqDoc(e.target.value); setPersonaSel(null); }} />
-      </div>
-      {matches.length > 0 && !personaSel && (
-        <div style={{ border: "1px solid var(--bd2)", borderRadius: 8, overflow: "hidden", marginBottom: 10 }}>
-          {matches.map(p => {
-            const emp = empresas[p.empId];
-            return (
-              <div key={p.id} onClick={() => { setPersonaSel(p); setBusqDoc(p.dni); }} style={{ padding: "9px 12px", cursor: "pointer", borderBottom: "1px solid var(--bd)", display: "flex", gap: 10, alignItems: "center", background: "var(--sf)" }}>
-                <Avt nombre={p.nombre} size={32} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 500, fontSize: 13 }}>{p.nombre}</div>
-                  <div style={{ fontSize: 11, color: "var(--tx3)" }}>{p.tipoDoc || "DNI"}: {p.dni} — {(emp && emp.razonSocial) || "—"}</div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-      {busqDoc.length >= 4 && !personaSel && matches.length === 0 && <div style={{ fontSize: 12, color: "var(--tx3)", marginBottom: 8 }}>No se encontró ninguna persona con ese número.</div>}
-      {personaSel && (
-        <div>
-          <div style={{ padding: "8px 12px", background: "#E6F1FB", borderRadius: 8, fontSize: 12, color: "#185FA5", marginBottom: 10 }}>
-            ✔ Operador: <strong>{personaSel.nombre}</strong> — {personaSel.tipoDoc || "DNI"}: {personaSel.dni}
-            <button onClick={() => { setPersonaSel(null); setBusqDoc(""); }} style={{ marginLeft: 10, background: "transparent", border: "none", cursor: "pointer", fontSize: 11, color: "#185FA5", textDecoration: "underline" }}>Cambiar</button>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-            <div style={{ gridColumn: "1/-1" }}><label style={{ fontSize: 12, color: "var(--tx3)", display: "block", marginBottom: 4 }}>Descripción del equipo *</label><input style={SI} value={form.desc} onChange={e => upd("desc", e.target.value)} placeholder="Ej. Retroexcavadora CAT 320" /></div>
-            <div><label style={{ fontSize: 12, color: "var(--tx3)", display: "block", marginBottom: 4 }}>N° Serie / Placa *</label><input style={SI} value={form.serie} onChange={e => upd("serie", e.target.value)} placeholder="ABC-123" /></div>
-            <div>
-              <label style={{ fontSize: 12, color: "var(--tx3)", display: "block", marginBottom: 4 }}>Documentos</label>
-              <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
-                {["SOAT", "Revisión técnica", "Permiso de operación"].map(d => (
-                  <label key={d} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, cursor: "pointer" }}>
-                    <input type="checkbox" checked={!!form.docs[d]} onChange={() => setForm(f => ({ ...f, docs: { ...f.docs, [d]: !f.docs[d] } }))} />
-                    {d}
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-          <Btn c="green" onClick={registrar}>⚙ Registrar equipo</Btn>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── REGISTRADOR HERRAMIENTAS (busca persona por n° de identificación) ────────
-function RegistradorHerramienta({ personas, empresas, herramientas, onAddHer }) {
-  const [busqDoc, setBusqDoc] = useState("");
-  const [personaSel, setPersonaSel] = useState(null);
-  const [items, setItems] = useState([{ desc: "", cant: 1 }]);
-  const [ok, setOk] = useState("");
-  const pLista = Object.values(personas);
-  const matches = busqDoc.length >= 4 ? pLista.filter(p => p.dni && p.dni.includes(busqDoc)) : [];
-  const registrar = () => {
-    if (!personaSel) { alert("Busca y selecciona una persona."); return; }
-    const val = items.filter(h => h.desc.trim());
-    if (!val.length) { alert("Agrega al menos una herramienta."); return; }
-    val.forEach(h => onAddHer({ ...h, operador: personaSel.nombre, operadorId: personaSel.id, operadorDni: personaSel.dni, pid: personaSel.id, id: "HER-" + String(Date.now()).slice(-4) + Math.random().toString(36).slice(2,4), ingreso: new Date().toISOString(), salida: null }));
-    setOk(val.length + " herramienta(s) registradas para " + personaSel.nombre);
-    setPersonaSel(null); setBusqDoc(""); setItems([{ desc: "", cant: 1 }]);
-    setTimeout(() => setOk(""), 4000);
-  };
-  return (
-    <div style={{ ...SC, marginBottom: "1rem" }}>
-      <p style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: 10 }}>Registrar herramientas — buscar responsable por N° de documento</p>
-      {ok && <div style={{ padding: "8px 12px", background: "#EAF3DE", borderRadius: 8, fontSize: 12, color: "#3B6D11", marginBottom: 10 }}>✅ {ok}</div>}
-      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-        <input style={{ ...SI, flex: 1 }} placeholder="N° DNI / CE / PAS del responsable..." value={busqDoc} onChange={e => { setBusqDoc(e.target.value); setPersonaSel(null); }} />
-      </div>
-      {matches.length > 0 && !personaSel && (
-        <div style={{ border: "1px solid var(--bd2)", borderRadius: 8, overflow: "hidden", marginBottom: 10 }}>
-          {matches.map(p => {
-            const emp = empresas[p.empId];
-            return (
-              <div key={p.id} onClick={() => { setPersonaSel(p); setBusqDoc(p.dni); }} style={{ padding: "9px 12px", cursor: "pointer", borderBottom: "1px solid var(--bd)", display: "flex", gap: 10, alignItems: "center" }}>
-                <Avt nombre={p.nombre} size={32} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 500, fontSize: 13 }}>{p.nombre}</div>
-                  <div style={{ fontSize: 11, color: "var(--tx3)" }}>{p.tipoDoc || "DNI"}: {p.dni} — {(emp && emp.razonSocial) || "—"}</div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-      {busqDoc.length >= 4 && !personaSel && matches.length === 0 && <div style={{ fontSize: 12, color: "var(--tx3)", marginBottom: 8 }}>No se encontró ninguna persona con ese número.</div>}
-      {personaSel && (
-        <div>
-          <div style={{ padding: "8px 12px", background: "#E6F1FB", borderRadius: 8, fontSize: 12, color: "#185FA5", marginBottom: 10 }}>
-            ✔ Responsable: <strong>{personaSel.nombre}</strong> — {personaSel.tipoDoc || "DNI"}: {personaSel.dni}
-            <button onClick={() => { setPersonaSel(null); setBusqDoc(""); }} style={{ marginLeft: 10, background: "transparent", border: "none", cursor: "pointer", fontSize: 11, color: "#185FA5", textDecoration: "underline" }}>Cambiar</button>
-          </div>
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 70px 24px", gap: 8, marginBottom: 6 }}>
-              <span style={{ fontSize: 11, fontWeight: 600, color: "var(--tx3)", textTransform: "uppercase" }}>Herramienta</span>
-              <span style={{ fontSize: 11, fontWeight: 600, color: "var(--tx3)", textTransform: "uppercase" }}>Cant.</span>
-              <span />
-            </div>
-            {items.map((item, i) => (
-              <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 70px 24px", gap: 8, marginBottom: 6, alignItems: "center" }}>
-                <input style={SI} placeholder='Ej. Llave stilson 24"' value={item.desc} onChange={e => setItems(prev => prev.map((x, j) => j === i ? { ...x, desc: e.target.value } : x))} />
-                <input type="number" min={1} style={SI} value={item.cant} onChange={e => setItems(prev => prev.map((x, j) => j === i ? { ...x, cant: e.target.value } : x))} />
-                {items.length > 1 ? <button onClick={() => setItems(prev => prev.filter((_, j) => j !== i))} style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--rd)", fontSize: 16 }}>✕</button> : <span />}
-              </div>
-            ))}
-            <Btn sm onClick={() => setItems(prev => [...prev, { desc: "", cant: 1 }])}>+ Ítem</Btn>
-          </div>
-          <Btn c="green" onClick={registrar}>🔧 Registrar herramientas</Btn>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── TAB INCIDENTE DE INGRESO ──────────────────────────────────────────────────
-function TabIncidenteIngreso({ personas, empresas, incidentesIngreso, onRegistrar }) {
-  const [tab, setTab] = useState("registrar");
-  const [busqDoc, setBusqDoc] = useState("");
-  const [personaSel, setPersonaSel] = useState(null);
-  const [causas, setCausas] = useState({ epp: false, alcohol: false, armas: false, otro: false });
-  const [detalle, setDetalle] = useState("");
-  const [bloquear, setBloquear] = useState(false);
-  const [ok, setOk] = useState("");
-  const pLista = Object.values(personas);
-  const matches = busqDoc.length >= 4 ? pLista.filter(p => p.dni && p.dni.includes(busqDoc)) : [];
-  const causaLabels = { epp: "🦺 EPP incompleto o inadecuado", alcohol: "🍺 Resultado positivo en alcohol test", armas: "🔫 Portación de armas blancas u objetos prohibidos", otro: "📝 Otro (especificar en detalle)" };
-  const registrar = () => {
-    if (!personaSel) { alert("Selecciona la persona involucrada."); return; }
-    const causasSel = Object.entries(causas).filter(([, v]) => v).map(([k]) => causaLabels[k]);
-    if (!causasSel.length && !detalle.trim()) { alert("Selecciona al menos una causa o escribe un detalle."); return; }
-    const causasTexto = causasSel.join(", ") || "Sin causa específica";
-    const emp = empresas[personaSel.empId];
-    onRegistrar({ personaId: personaSel.id, nombre: personaSel.nombre, dni: personaSel.dni, tipoDoc: personaSel.tipoDoc || "DNI", empresa: (emp && emp.razonSocial) || "—", causas, causasTexto, detalle, bloquear });
-    setOk("Incidente registrado para " + personaSel.nombre + (bloquear ? ". Se solicitó suspensión al Administrador." : "."));
-    setPersonaSel(null); setBusqDoc(""); setCausas({ epp: false, alcohol: false, armas: false, otro: false }); setDetalle(""); setBloquear(false);
-    setTimeout(() => setOk(""), 5000);
-    setTab("historial");
-  };
-  return (
-    <div>
-      <TabBar tabs={[["registrar","📋 Registrar incidente"],["historial","📒 Historial (" + incidentesIngreso.length + ")"]]} active={tab} onSelect={setTab} />
-      {tab === "registrar" && (
-        <div>
-          <div style={{ padding: "10px 14px", background: "#FAEEDA", border: "1px solid var(--am-bd)", borderRadius: 10, fontSize: 12, color: "var(--am)", marginBottom: "1rem" }}>
-            ⚠ Este módulo registra cuando una persona <strong>no cumple</strong> con las condiciones de ingreso (EPP, alcohol, armas blancas u otros). El registro bloquea el ingreso hasta que se levante el incidente.
-          </div>
-          {ok && <div style={{ padding: "10px 14px", background: "#EAF3DE", border: "1px solid var(--gn-bd)", borderRadius: 10, fontSize: 12, color: "var(--gn)", marginBottom: "1rem" }}>✅ {ok}</div>}
-          <div style={SC}>
-            <p style={{ fontSize: 12, fontWeight: 600, color: "var(--tx3)", marginBottom: 10 }}>1. Buscar persona por N° de documento</p>
-            <input style={{ ...SI, marginBottom: 8 }} placeholder="N° DNI / CE / PAS..." value={busqDoc} onChange={e => { setBusqDoc(e.target.value); setPersonaSel(null); }} />
-            {matches.length > 0 && !personaSel && (
-              <div style={{ border: "1px solid var(--bd2)", borderRadius: 8, overflow: "hidden", marginBottom: 8 }}>
-                {matches.map(p => {
-                  const emp = empresas[p.empId];
-                  return (
-                    <div key={p.id} onClick={() => { setPersonaSel(p); setBusqDoc(p.dni); }} style={{ padding: "9px 12px", cursor: "pointer", borderBottom: "1px solid var(--bd)", display: "flex", gap: 10, alignItems: "center" }}>
-                      <Avt nombre={p.nombre} size={32} />
-                      <div><div style={{ fontWeight: 500, fontSize: 13 }}>{p.nombre}</div><div style={{ fontSize: 11, color: "var(--tx3)" }}>{p.tipoDoc || "DNI"}: {p.dni} — {(emp && emp.razonSocial) || "—"}</div></div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-            {personaSel && (
-              <div style={{ padding: "8px 12px", background: "#FCEBEB", border: "1px solid var(--rd-bd)", borderRadius: 8, fontSize: 12, color: "var(--rd)", marginBottom: 8, display: "flex", alignItems: "center", gap: 10 }}>
-                ⚠ <strong>{personaSel.nombre}</strong> — {personaSel.tipoDoc || "DNI"}: {personaSel.dni}
-                <button onClick={() => { setPersonaSel(null); setBusqDoc(""); }} style={{ marginLeft: "auto", background: "transparent", border: "none", cursor: "pointer", fontSize: 11, color: "var(--rd)", textDecoration: "underline" }}>Cambiar</button>
-              </div>
-            )}
-          </div>
-          {personaSel && (
-            <div style={SC}>
-              <p style={{ fontSize: 12, fontWeight: 600, color: "var(--tx3)", marginBottom: 10 }}>2. Causa del incidente</p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
-                {Object.entries(causaLabels).map(([k, lbl]) => (
-                  <label key={k} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", border: "1px solid " + (causas[k] ? "var(--rd-bd)" : "var(--bd2)"), borderRadius: 8, cursor: "pointer", background: causas[k] ? "var(--rd-bg)" : "var(--sf)", fontSize: 13 }}>
-                    <input type="checkbox" checked={!!causas[k]} onChange={() => setCausas(c => ({ ...c, [k]: !c[k] }))} style={{ width: 16, height: 16 }} />
-                    <span style={{ color: causas[k] ? "var(--rd)" : "var(--tx)" }}>{lbl}</span>
-                  </label>
-                ))}
-              </div>
-              <label style={{ fontSize: 12, color: "var(--tx3)", display: "block", marginBottom: 4 }}>Detalle adicional</label>
-              <textarea style={{ ...SI, resize: "vertical", marginBottom: 12 }} rows={3} value={detalle} onChange={e => setDetalle(e.target.value)} placeholder="Describe el incidente con más detalle..." />
-              <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", border: "1px solid " + (bloquear ? "var(--rd-bd)" : "var(--bd2)"), borderRadius: 8, cursor: "pointer", background: bloquear ? "var(--rd-bg)" : "var(--sf)", fontSize: 13, marginBottom: 12 }}>
-                <input type="checkbox" checked={bloquear} onChange={() => setBloquear(b => !b)} style={{ width: 16, height: 16 }} />
-                <span style={{ color: bloquear ? "var(--rd)" : "var(--tx)" }}>🚫 Solicitar suspensión al Administrador</span>
-              </label>
-              <Btn c="red" onClick={registrar}>⚠ Registrar incidente de ingreso</Btn>
-            </div>
-          )}
-        </div>
-      )}
-      {tab === "historial" && (
-        <div>
-          {incidentesIngreso.length === 0
-            ? <div style={{ textAlign: "center", padding: "3rem", color: "var(--tx3)" }}>Sin incidentes registrados.</div>
-            : incidentesIngreso.map(inc => (
-              <div key={inc.id} style={{ ...SC, borderLeft: "3px solid var(--rd)" }}>
-                <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 500, fontSize: 14 }}>{inc.nombre}</div>
-                    <div style={{ fontSize: 12, color: "var(--tx3)" }}>{inc.tipoDoc || "DNI"}: {inc.dni} — {inc.empresa}</div>
-                    <div style={{ fontSize: 12, color: "var(--tx3)", marginTop: 2 }}>{inc.fecha} {inc.hora}</div>
-                    <div style={{ marginTop: 6, padding: "6px 10px", background: "var(--rd-bg)", borderRadius: 6, fontSize: 12, color: "var(--rd)" }}>
-                      ⚠ {inc.causasTexto}
-                    </div>
-                    {inc.detalle && <div style={{ fontSize: 12, color: "var(--tx2)", marginTop: 4 }}>{inc.detalle}</div>}
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end" }}>
-                    <IDB id={inc.id} />
-                    {inc.bloquear && <Badge t="red">Suspensión solicitada</Badge>}
-                  </div>
-                </div>
-              </div>
-            ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── TAB DESPACHOS ─────────────────────────────────────────────────────────────
-function TabDespachos({ personas, empresas, despachos, onIngresoDespacho, onSalidaDespacho }) {
-  const [tab, setTab] = useState("pendientes");
-  const [guiaBuf, setGuiaBuf] = useState({});
-  const hoy = new Date().toISOString().split("T")[0];
-  const pendientes = despachos.filter(d => d.estado === "Pendiente");
-  const enPlanta = despachos.filter(d => d.estado === "En planta");
-  const salidos = despachos.filter(d => d.estado === "Salió");
-  const empNombre = (id) => { const e = empresas[id]; return e ? e.razonSocial : "—"; };
-  const sctrColor = (venc) => {
-    if (!venc) return "var(--rd)";
-    const d = Math.floor((new Date(venc) - new Date()) / 86400000);
-    return d < 0 ? "var(--rd)" : d <= 30 ? "var(--am)" : "var(--gn)";
-  };
-  const DespachoCard = ({ d }) => (
-    <div style={{ ...SC, borderLeft: d.estado === "En planta" ? "3px solid var(--gn)" : d.estado === "Salió" ? "3px solid var(--tx3)" : "3px solid var(--ac)" }}>
-      <div style={{ display: "flex", alignItems: "flex-start", gap: 12, flexWrap: "wrap" }}>
-        <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ fontWeight: 500, fontSize: 14, marginBottom: 2 }}>{empNombre(d.empresaId)}</div>
-          <div style={{ fontSize: 12, color: "var(--tx3)", marginBottom: 6 }}>PO: {d.mercancia.po} — {d.mercancia.descripcion}</div>
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
-            <Badge t={d.estado === "En planta" ? "green" : d.estado === "Salió" ? "gray" : "blue"}>{d.estado}</Badge>
-            <Badge t="gray">📅 Llegada esperada: {d.fechaRegistro}</Badge>
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6, fontSize: 12 }}>
-            <div style={{ background: "var(--sf2)", borderRadius: 8, padding: "8px 10px" }}>
-              <div style={{ fontWeight: 500, marginBottom: 4, color: "var(--tx2)" }}>🚗 Vehículo</div>
-              <div>Placa: <strong>{d.vehiculo.placa}</strong> — {d.vehiculo.marca}</div>
-              <div style={{ color: "var(--tx3)", fontSize: 11 }}>SOAT: {d.vehiculo.soatVenc} · Lic: {d.vehiculo.licVenc}</div>
-              <div style={{ color: "var(--tx3)", fontSize: 11 }}>Insp: {d.vehiculo.inspVenc} · Seg: {d.vehiculo.segVenc}</div>
-            </div>
-            <div style={{ background: "var(--sf2)", borderRadius: 8, padding: "8px 10px" }}>
-              <div style={{ fontWeight: 500, marginBottom: 4, color: "var(--tx2)" }}>👤 Chofer</div>
-              <div>{d.chofer.nombre}</div>
-              <div style={{ color: "var(--tx3)", fontSize: 11 }}>{d.chofer.tipoDoc || "DNI"}: {d.chofer.dni} · Tel: {d.chofer.tel}</div>
-              <div style={{ color: sctrColor(d.chofer.sctrVenc), fontSize: 11 }}>SCTR: {d.chofer.sctrPoliza} — Vence: {d.chofer.sctrVenc}</div>
-            </div>
-          </div>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end", minWidth: 160 }}>
-          {d.estado === "Pendiente" && (
-            <div style={{ width: "100%" }}>
-              <label style={{ fontSize: 11, color: "var(--tx3)", display: "block", marginBottom: 4 }}>N° de guía de remisión</label>
-              <input style={{ ...SI, marginBottom: 6 }} placeholder="GR-2026-xxxxx" value={guiaBuf[d.id] || ""} onChange={e => setGuiaBuf(g => ({ ...g, [d.id]: e.target.value }))} />
-              <Btn c="green" onClick={() => {
-                const guia = guiaBuf[d.id] || "";
-                if (!guia.trim()) { alert("Ingresa el N° de guía de remisión."); return; }
-                const hora = new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
-                onIngresoDespacho(d.id, guia, hora);
-              }}>🔓 Dar ingreso al vehículo</Btn>
-            </div>
-          )}
-          {d.estado === "En planta" && (
-            <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 12, color: "var(--gn)", fontWeight: 500, marginBottom: 4 }}>✅ Ingresó: {d.ingresoHora}</div>
-              <div style={{ fontSize: 11, color: "var(--tx3)", marginBottom: 6 }}>Guía: {d.guia}</div>
-              <Btn c="red" onClick={() => {
-                const hora = new Date().toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
-                onSalidaDespacho(d.id, hora);
-              }}>🚪 Registrar salida</Btn>
-            </div>
-          )}
-          {d.estado === "Salió" && (
-            <div style={{ textAlign: "right" }}>
-              <div style={{ fontSize: 12, color: "var(--tx3)", fontWeight: 500 }}>Ingresó: {d.ingresoHora}</div>
-              <div style={{ fontSize: 12, color: "var(--rd)", fontWeight: 500 }}>Salió: {d.salidaHora}</div>
-              <div style={{ fontSize: 11, color: "var(--tx3)" }}>Guía: {d.guia}</div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-  return (
-    <div>
-      <TabBar tabs={[["pendientes","🔵 Pendientes (" + pendientes.length + ")"],["enplanta","✅ En planta (" + enPlanta.length + ")"],["historial","📒 Historial (" + salidos.length + ")"]]} active={tab} onSelect={setTab} />
-      {tab === "pendientes" && (pendientes.length === 0 ? <div style={{ textAlign: "center", padding: "3rem", color: "var(--tx3)" }}>Sin despachos pendientes de ingreso.</div> : pendientes.map(d => <DespachoCard key={d.id} d={d} />))}
-      {tab === "enplanta" && (enPlanta.length === 0 ? <div style={{ textAlign: "center", padding: "3rem", color: "var(--tx3)" }}>Sin vehículos en planta ahora.</div> : enPlanta.map(d => <DespachoCard key={d.id} d={d} />))}
-      {tab === "historial" && (salidos.length === 0 ? <div style={{ textAlign: "center", padding: "3rem", color: "var(--tx3)" }}>Sin historial de despachos.</div> : salidos.map(d => <DespachoCard key={d.id} d={d} />))}
     </div>
   );
 }
@@ -2529,7 +2037,7 @@ function ModReportes({ personas, empresas, accesos, equipos, herramientas }) {
                   <tr key={p.id}>
                     <td style={STD}><IDB id={p.id}/></td>
                     <td style={{...STD,fontWeight:500}}>{p.nombre}</td>
-                    <td style={STD}>{(p.tipoDoc || "DNI") + " " + (p.dni||"—")}</td>
+                    <td style={STD}>{p.dni||"—"}</td>
                     <td style={STD}><Badge t={p.tipo==="contratista"?"blue":p.tipo==="induccion"?"amber":"teal"}>{p.tipo==="contratista"?"Contratista":p.tipo==="induccion"?"Inducción de sitio":"Visita"}</Badge></td>
                     <td style={STD}>{(emp && emp.razonSocial)||"—"}</td>
                     <td style={STD}><Badge t={sc==="vigente"?"green":sc==="proximo"?"amber":"red"}>{sc==="vigente"?"Vigente":sc==="proximo"?"Por vencer":"Vencido/Sin"}</Badge></td>
@@ -3058,62 +2566,167 @@ function Alertas({ personas, empresas }) {
   );
 }
 
-function ModUsuarios({ usuarios, onGuardar, onToggle }) {
-  const [tab, setTab] = useState("lista");
-  const [f, setF] = useState({ nombre: "", usuario: "", email: "", rol: "vigilancia", pass: "" });
+function ModUsuarios() {
+  const [tab, setTab]       = useState("lista");
+  const [lista, setLista]   = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [msg, setMsg]       = useState("");
+  const [f, setF]           = useState({ nombre: "", email: "", rol: "vigilancia", pass: "" });
+  const [guardando, setGuardando] = useState(false);
   const upd = (k, v) => setF(x => ({ ...x, [k]: v }));
-  const lista = Object.values(usuarios);
-  const SI2 = { width: "100%", padding: "7px 10px", border: "0.5px solid var(--color-border-tertiary)", borderRadius: 8, fontSize: 13, background: "var(--color-background-primary)", color: "var(--color-text-primary)", fontFamily: "inherit", boxSizing: "border-box" };
+
+  const cargar = async () => {
+    setLoading(true);
+    const { data } = await supa.from("usuarios").select("*");
+    setLista(data || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { cargar(); }, []);
+
+  const crearUsuario = async () => {
+    if (!f.nombre.trim() || !f.email.trim() || !f.pass.trim()) {
+      setMsg("error:Completa nombre, email y contraseña.");
+      return;
+    }
+    if (f.pass.length < 6) {
+      setMsg("error:La contraseña debe tener al menos 6 caracteres.");
+      return;
+    }
+    setGuardando(true); setMsg("");
+    try {
+      // 1. Crear en Supabase Auth usando la Admin API a través del cliente
+      const res = await fetch(`${SUPA_URL}/auth/v1/admin/users`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": SUPA_KEY,
+          "Authorization": "Bearer " + SUPA_KEY,
+        },
+        body: JSON.stringify({ email: f.email, password: f.pass, email_confirm: true }),
+      });
+      const authData = await res.json();
+
+      if (!authData.id) {
+        setMsg("error:" + (authData.msg || authData.message || "Error al crear en Auth. Verifica que el email no exista ya."));
+        setGuardando(false); return;
+      }
+
+      // 2. Insertar en tabla usuarios
+      await supa.from("usuarios").insert({
+        id: authData.id,
+        nombre: f.nombre.trim(),
+        email: f.email.trim(),
+        rol: f.rol,
+      });
+
+      setMsg("ok:Usuario creado correctamente.");
+      setF({ nombre: "", email: "", rol: "vigilancia", pass: "" });
+      setTab("lista");
+      cargar();
+    } catch(e) {
+      setMsg("error:Error de conexión: " + e.message);
+    }
+    setGuardando(false);
+  };
+
+  const cambiarRol = async (id, nuevoRol) => {
+    await supa.from("usuarios").update({ rol: nuevoRol }).eq("id", id);
+    cargar();
+  };
+
+  const eliminarUsuario = async (id) => {
+    if (!window.confirm("¿Eliminar este usuario del sistema? Solo se elimina de la tabla de roles, no de Auth.")) return;
+    await supa.from("usuarios").delete().eq("id", id);
+    cargar();
+  };
+
   return (
     <div>
-      <p style={{ fontSize: 15, fontWeight: 500, marginBottom: "1rem" }}>👥 Gestión de usuarios</p>
-      <div style={{ display: "flex", borderBottom: "0.5px solid var(--color-border-tertiary)", marginBottom: "1.5rem" }}>
-        {[["lista", "Usuarios"], ["nuevo", "Nuevo usuario"]].map(([id, l]) => (
-          <div key={id} onClick={() => setTab(id)} style={{ padding: "8px 14px", fontSize: 13, cursor: "pointer", color: tab === id ? "var(--color-text-primary)" : "var(--color-text-secondary)", borderBottom: tab === id ? "2px solid #185FA5" : "2px solid transparent", fontWeight: tab === id ? 500 : 400, marginBottom: -0.5 }}>{l}</div>
-        ))}
-      </div>
+      <p style={{ fontSize: 14, fontWeight: 500, color: "var(--tx)", marginBottom: "1rem" }}>Gestión de usuarios</p>
+      <TabBar tabs={[["lista","Usuarios"],["nuevo","Nuevo usuario"]]} active={tab} onSelect={setTab} />
+
+      {msg && (
+        <div style={{ padding: "8px 14px", borderRadius: 8, fontSize: 12, marginBottom: 14,
+          background: msg.startsWith("ok:") ? "var(--gn-bg)" : "var(--rd-bg)",
+          border: "1px solid " + (msg.startsWith("ok:") ? "var(--gn-bd)" : "var(--rd-bd)"),
+          color: msg.startsWith("ok:") ? "var(--gn)" : "var(--rd)" }}>
+          {msg.replace(/^(ok:|error:)/, "")}
+        </div>
+      )}
+
+      {/* LISTA */}
+      {tab === "lista" && (
+        <div>
+          {loading
+            ? <div style={{ textAlign:"center", padding:"3rem", color:"var(--tx3)" }}>Cargando usuarios...</div>
+            : lista.length === 0
+              ? <div style={{ textAlign:"center", padding:"3rem", color:"var(--tx3)" }}>Sin usuarios registrados.</div>
+              : lista.map(u => {
+                  const rol = ROLES[u.rol];
+                  return (
+                    <div key={u.id} style={{ ...SC, display:"flex", alignItems:"center", gap:12 }}>
+                      <Avt nombre={u.nombre || u.email} color={AC[0]} size={40} />
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontWeight:500, fontSize:13 }}>{u.nombre || "—"}</div>
+                        <div style={{ fontSize:11, color:"var(--tx3)", fontFamily:"var(--mono)", marginTop:2 }}>{u.email}</div>
+                      </div>
+                      {/* Selector de rol */}
+                      <select
+                        value={u.rol}
+                        onChange={e => cambiarRol(u.id, e.target.value)}
+                        style={{ padding:"4px 10px", border:"1px solid var(--bd2)", borderRadius:8, fontSize:12, background:"var(--sf)", color:"var(--tx)", fontFamily:"inherit", cursor:"pointer" }}>
+                        {Object.entries(ROLES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                      </select>
+                      <Badge t={u.rol === "admin" ? "red" : u.rol === "vigilancia" ? "amber" : u.rol === "safety" ? "green" : "blue"}>
+                        {(rol && rol.label) || u.rol}
+                      </Badge>
+                      <button onClick={() => eliminarUsuario(u.id)}
+                        style={{ padding:"4px 10px", fontSize:11, background:"transparent", border:"1px solid var(--bd2)", borderRadius:6, cursor:"pointer", color:"var(--tx3)" }}>
+                        Eliminar
+                      </button>
+                    </div>
+                  );
+                })
+          }
+          <div style={{ marginTop:8 }}>
+            <Btn sm onClick={cargar}>↺ Actualizar lista</Btn>
+          </div>
+        </div>
+      )}
+
+      {/* NUEVO USUARIO */}
       {tab === "nuevo" && (
-        <div style={{ background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-tertiary)", borderRadius: 12, padding: "1.25rem", marginBottom: "1rem" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            {[["nombre", "Nombre completo *", "text"], ["usuario", "Usuario (login) *", "text"], ["email", "Email", "email"], ["pass", "Contraseña *", "password"]].map(([k, lbl, type]) => (
-              <div key={k} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <label style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>{lbl}</label>
-                <input type={type} style={SI2} value={f[k]} onChange={e => upd(k, e.target.value)} />
-              </div>
-            ))}
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <label style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>Rol *</label>
-              <select style={SI2} value={f.rol} onChange={e => upd("rol", e.target.value)}>
+        <div style={SC}>
+          <p style={{ fontSize:12, color:"var(--tx2)", marginBottom:14, lineHeight:1.6 }}>
+            El usuario recibirá acceso al sistema con el email y contraseña que ingreses aquí.
+          </p>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12 }}>
+            <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+              <label style={{ fontSize:10, fontWeight:600, color:"var(--tx3)", fontFamily:"var(--mono)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Nombre completo *</label>
+              <input style={SI} type="text" placeholder="Carlos Quispe" value={f.nombre} onChange={e => upd("nombre", e.target.value)} />
+            </div>
+            <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+              <label style={{ fontSize:10, fontWeight:600, color:"var(--tx3)", fontFamily:"var(--mono)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Email *</label>
+              <input style={SI} type="email" placeholder="cquispe@bradkenchilca.pe" value={f.email} onChange={e => upd("email", e.target.value)} />
+            </div>
+            <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+              <label style={{ fontSize:10, fontWeight:600, color:"var(--tx3)", fontFamily:"var(--mono)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Contraseña *</label>
+              <input style={SI} type="password" placeholder="Mínimo 6 caracteres" value={f.pass} onChange={e => upd("pass", e.target.value)} />
+            </div>
+            <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+              <label style={{ fontSize:10, fontWeight:600, color:"var(--tx3)", fontFamily:"var(--mono)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Rol *</label>
+              <select style={SI} value={f.rol} onChange={e => upd("rol", e.target.value)}>
                 {Object.entries(ROLES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
               </select>
             </div>
           </div>
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: "1rem" }}>
-            <button onClick={() => setTab("lista")} style={{ padding: "8px 16px", fontSize: 13, fontWeight: 500, background: "var(--color-background-primary)", color: "var(--color-text-primary)", border: "0.5px solid var(--color-border-secondary)", borderRadius: 8, cursor: "pointer" }}>Cancelar</button>
-            <button onClick={() => { if (!f.nombre || !f.usuario || !f.pass) { alert("Completa los campos requeridos."); return; } if (usuarios[f.usuario]) { alert("Usuario ya existe."); return; } onGuardar({ ...f, id: "U" + Date.now(), activo: true }); setF({ nombre: "", usuario: "", email: "", rol: "vigilancia", pass: "" }); setTab("lista"); }} style={{ padding: "8px 16px", fontSize: 13, fontWeight: 500, background: "#185FA5", color: "#fff", border: "0.5px solid #185FA5", borderRadius: 8, cursor: "pointer" }}>✔ Crear usuario</button>
+          <div style={{ display:"flex", justifyContent:"flex-end", gap:8, marginTop:14 }}>
+            <Btn onClick={() => setTab("lista")}>Cancelar</Btn>
+            <Btn c="blue" disabled={guardando} onClick={crearUsuario}>
+              {guardando ? "Creando..." : "✔ Crear usuario"}
+            </Btn>
           </div>
-        </div>
-      )}
-      {tab === "lista" && (
-        <div>
-          {lista.map(u => {
-            const rol = ROLES[u.rol];
-            return (
-              <div key={u.id || u.usuario} style={{ background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-tertiary)", borderRadius: 12, padding: "1.25rem", marginBottom: "1rem", opacity: u.activo ? 1 : 0.6 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: "50%", background: (rol && rol.bg) || "#F1EFE8", color: (rol && rol.color) || "#5F5E5A", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14, fontWeight: 500, flexShrink: 0 }}>{u.nombre.split(" ").map(w => w[0]).slice(0, 2).join("")}</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 500 }}>{u.nombre}</div>
-                    <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>@{u.usuario || u.id}{u.email ? " — " + u.email : ""}</div>
-                  </div>
-                  <span style={{ background: (rol && rol.bg) || "#F1EFE8", color: (rol && rol.color) || "#5F5E5A", padding: "3px 8px", borderRadius: 6, fontSize: 11, fontWeight: 500 }}>{(rol && rol.label) || u.rol}</span>
-                  <span style={{ background: u.activo ? "#EAF3DE" : "#F1EFE8", color: u.activo ? "#3B6D11" : "#5F5E5A", padding: "3px 8px", borderRadius: 6, fontSize: 11, fontWeight: 500 }}>{u.activo ? "Activo" : "Inactivo"}</span>
-                  <button onClick={() => onToggle(u.usuario || u.id)} style={{ padding: "5px 10px", fontSize: 12, fontWeight: 500, background: u.activo ? "#A32D2D" : "#3B6D11", color: "#fff", border: u.activo ? "0.5px solid #A32D2D" : "0.5px solid #3B6D11", borderRadius: 8, cursor: "pointer" }}>{u.activo ? "Desactivar" : "Activar"}</button>
-                </div>
-              </div>
-            );
-          })}
-          {lista.length === 0 && <div style={{ textAlign: "center", padding: "2rem", color: "var(--color-text-secondary)" }}>Sin usuarios.</div>}
         </div>
       )}
     </div>
@@ -3129,7 +2742,6 @@ export default function App() {
   const [accesos, setAccesos] = useState([]);
   const [equipos, setEquipos] = useState([]);
   const [herramientas, setHerramientas] = useState([]);
-  const [despachos, setDespachos] = useState([]);
   const [usuarios, setUsuarios] = useState({ ...DEMO });
   const [solicitudes, setSolicitudes] = useState([]);
 
@@ -3254,9 +2866,6 @@ export default function App() {
   const cargarHerramientas = async () => {
     const { data } = await supa.from("herramientas").select("*").order("ingreso", { ascending: false });
     if (data) setHerramientas(data.map(h => ({ id: h.id, pid: h.pid, operador: h.operador, operadorId: h.operador_id, operadorDni: h.operador_dni, desc: h.descripcion, cant: h.cantidad, ingreso: h.ingreso, salida: h.salida })));
-    // Cargar despachos
-    const { data: desp } = await supa.from("despachos").select("*").order("created_at", { ascending: false });
-    if (desp) setDespachos(desp.map(d => ({ id: d.id, empresaId: d.empresa_id, empresaNombre: d.empresa_nombre, fechaRegistro: d.fecha_registro, chofer: d.chofer, vehiculo: d.vehiculo, mercancia: d.mercancia, estado: d.estado, guia: d.guia || "", ingresoHora: d.ingreso_hora || "", salidaHora: d.salida_hora || "" })));
   };
 
   const onGuardar = useCallback(async (emp) => {
@@ -3307,7 +2916,7 @@ export default function App() {
           const dias = f.tipo === "induccion" ? 1 : Number(form.diasEnPlanta) || 1;
           const fechaVenc = (() => { const d = new Date((form.fechaIng || today()) + "T12:00:00"); d.setDate(d.getDate() + dias); return d.toISOString().split("T")[0]; })();
           next[docKey] = {
-            id, nombre: f.nombre, dni: f.dniQ || f.dni, tipoDoc: f.tipoDoc || "DNI", cargo: f.cargo,
+            id, nombre: f.nombre, dni: f.dni, cargo: f.cargo,
             tipo: f.tipo || f.tipoPersona || "contratista",
             empId: empresa.id, color,
             sctr: { poliza: form.poliza, aseguradora: form.aseg, vencimiento: form.sctrFecha, url: form.sctrUrl || null },
@@ -3327,59 +2936,35 @@ export default function App() {
       });
       return next;
     });
-    // Sincronizar personas con Supabase en background
-    setTimeout(async () => {
-      for (const item of ids) {
-        const p = Object.values(personas).find(x => x.id === item.id) ||
-          (() => { let found; setPersonas(prev => { found = Object.values(prev).find(x => x.id === item.id); return prev; }); return found; })();
-        if (!p) continue;
-        await supa.from("personas").upsert({
-          id: p.id, nombre: p.nombre, dni: p.dni, tipo_doc: p.tipoDoc || "DNI",
-          cargo: p.cargo, tipo: p.tipo, emp_id: p.empId,
-          sctr_poliza: p.sctr?.poliza, sctr_aseguradora: p.sctr?.aseguradora,
-          sctr_vencimiento: p.sctr?.vencimiento, sctr_url: p.sctr?.url,
-          fecha_prevista: p.fechaPrevista, dias_en_planta: p.diasEnPlanta,
-          fecha_venc_planta: p.fechaVencPlanta,
-          resp_bradken: p.respBradken, bloqueado: false,
-        });
-      }
-    }, 200);
     return { regId: "REG-" + String(Date.now()).slice(-4), personas: ids };
-  }, [personas]);
+  }, []);
   const onEPP = useCallback((pid, k) => setPersonas(prev => { const next = { ...prev }; const p = Object.values(next).find(x => x.id === pid); if (p) { const key = p.dni || p.nombre.toLowerCase().replace(/\s/g, "_"); next[key] = { ...p, epp: { ...p.epp, [k]: !p.epp[k] } }; } return next; }), []);
-  const onIngreso = useCallback(async (pid, tipoIngreso, agente) => {
+  const onIngreso = useCallback(async (pid, tipoIngreso) => {
     const p = Object.values(personas).find(x => x.id === pid);
     if (!p) return;
     const emp = empresas[p.empId];
-    const nuevo = { pid, nombre: p.nombre, empresa: (emp && emp.razonSocial) || "—", tipoIngreso, agente: agente || "", ingreso: nowISO(), salida: null };
+    const nuevo = { pid, nombre: p.nombre, empresa: (emp && emp.razonSocial) || "—", tipoIngreso, ingreso: nowISO(), salida: null };
     setAccesos(prev => [...prev, nuevo]);
-    await supa.from("accesos").insert({ pid, nombre: p.nombre, empresa: (emp && emp.razonSocial) || "—", tipo_ingreso: tipoIngreso, agente_ingreso: agente || "" });
+    await supa.from("accesos").insert({ pid, nombre: p.nombre, empresa: (emp && emp.razonSocial) || "—", tipo_ingreso: tipoIngreso });
   }, [personas, empresas]);
-  const onSalida = useCallback(async (pid, agente) => {
+  const onSalida = useCallback(async (pid) => {
     const ts = nowISO();
-    setAccesos(prev => prev.map(a => a.pid === pid && !a.salida ? { ...a, salida: ts, agenteSalida: agente || "" } : a));
+    setAccesos(prev => prev.map(a => a.pid === pid && !a.salida ? { ...a, salida: ts } : a));
     setEquipos(prev => prev.map(e => (e.pid === pid || e.opId === pid) && !e.salida ? { ...e, salida: ts } : e));
     setHerramientas(prev => prev.map(h => (h.pid === pid || h.operadorId === pid) && !h.salida ? { ...h, salida: ts } : h));
-    await supa.from("accesos").update({ salida: ts, agente_salida: agente || "" }).eq("pid", pid).is("salida", null);
+    // Sincronizar con Supabase
+    await supa.from("accesos").update({ salida: ts }).eq("pid", pid).is("salida", null);
     await supa.from("equipos").update({ salida: ts }).eq("pid", pid).is("salida", null);
     await supa.from("herramientas").update({ salida: ts }).eq("pid", pid).is("salida", null);
   }, []);
-  const onInd = useCallback(async (pid, fecha) => {
-    setPersonas(prev => { const next = { ...prev }; const p = Object.values(next).find(x => x.id === pid); if (p) { const key = p.dni || p.nombre.toLowerCase().replace(/\s/g, "_"); next[key] = { ...p, induccion: fecha }; } return next; });
-    await supa.from("personas").update({ induccion: fecha }).eq("id", pid);
-  }, []);
-  const onCap = useCallback(async (pid, fecha) => {
-    setPersonas(prev => { const next = { ...prev }; const p = Object.values(next).find(x => x.id === pid); if (p) { const key = p.dni || p.nombre.toLowerCase().replace(/\s/g, "_"); next[key] = { ...p, capacitacionVirtual: fecha }; } return next; });
-    await supa.from("personas").update({ capacitacion_virtual: fecha }).eq("id", pid);
+  const onInd = useCallback((pid, fecha) => setPersonas(prev => { const next = { ...prev }; const p = Object.values(next).find(x => x.id === pid); if (p) { const key = p.dni || p.nombre.toLowerCase().replace(/\s/g, "_"); next[key] = { ...p, induccion: fecha }; } return next; }), []);
+  const onCap = useCallback((pid, fecha) => setPersonas(prev => { const next = { ...prev }; const p = Object.values(next).find(x => x.id === pid); if (p) { const key = p.dni || p.nombre.toLowerCase().replace(/\s/g, "_"); next[key] = { ...p, capacitacionVirtual: fecha }; } return next; }), []);
+
+  const onSolicitarBloqueo = useCallback((pid, datos) => {
+    setSolicitudes(prev => [...prev, { id: "SOL-" + String(Date.now()).slice(-6), personaId: pid, ...datos, estado: "pendiente" }]);
   }, []);
 
-  const onSolicitarBloqueo = useCallback(async (pid, datos) => {
-    const sol = { id: "SOL-" + String(Date.now()).slice(-6), personaId: pid, ...datos, estado: "pendiente" };
-    setSolicitudes(prev => [...prev, sol]);
-    await supa.from("solicitudes_suspension").insert({ id: sol.id, persona_id: pid, nombre: datos.nombre, motivo: datos.motivo, fecha: datos.fecha, solicitante: datos.solicitante, estado: "pendiente" });
-  }, []);
-
-  const onAprobarBloqueo = useCallback(async (solId, aprobado) => {
+  const onAprobarBloqueo = useCallback((solId, aprobado) => {
     setSolicitudes(prev => {
       const updated = prev.map(s => s.id === solId ? { ...s, estado: aprobado ? "aprobado" : "rechazado" } : s);
       if (aprobado) {
@@ -3391,15 +2976,13 @@ export default function App() {
             if (p) { const key = p.dni || p.nombre.toLowerCase().replace(/\s/g, "_"); next[key] = { ...p, bloqueado: true, motivoBloqueo: sol.motivo, fechaBloqueo: sol.fecha }; }
             return next;
           });
-          supa.from("personas").update({ bloqueado: true, motivo_bloqueo: sol.motivo }).eq("id", sol.personaId);
         }
       }
       return updated;
     });
-    await supa.from("solicitudes_suspension").update({ estado: aprobado ? "aprobado" : "rechazado" }).eq("id", solId);
   }, []);
 
-  const onDesbloquear = useCallback(async (pid) => {
+  const onDesbloquear = useCallback((pid) => {
     setPersonas(prev => {
       const next = { ...prev };
       const p = Object.values(next).find(x => x.id === pid);
@@ -3407,8 +2990,6 @@ export default function App() {
       return next;
     });
     setSolicitudes(prev => prev.map(s => s.personaId === pid && s.estado === "aprobado" ? { ...s, estado: "desbloqueado" } : s));
-    await supa.from("personas").update({ bloqueado: false, motivo_bloqueo: null }).eq("id", pid);
-    await supa.from("solicitudes_suspension").update({ estado: "desbloqueado" }).eq("persona_id", pid).eq("estado", "aprobado");
   }, []);
 
   const onInspeccion = useCallback((pid, insp) => {
@@ -3421,24 +3002,22 @@ export default function App() {
     });
   }, []);
 
-  const onVistoBuenoSctr = useCallback(async (pid, agente) => {
+  const onVistoBuenoSctr = useCallback((pid) => {
     setPersonas(prev => {
       const next = { ...prev };
       const p = Object.values(next).find(x => x.id === pid);
-      if (p) { const key = p.dni || p.nombre.toLowerCase().replace(/\s/g, "_"); next[key] = { ...p, sctrVerificado: true, sctrVerificadoPor: agente || "" }; }
+      if (p) { const key = p.dni || p.nombre.toLowerCase().replace(/\s/g, "_"); next[key] = { ...p, sctrVerificado: true }; }
       return next;
     });
-    await supa.from("personas").update({ sctr_verificado: true, sctr_verificado_por: agente || "" }).eq("id", pid);
   }, []);
 
-  const onActualizarSctr = useCallback(async (pid, sctr) => {
+  const onActualizarSctr = useCallback((pid, sctr) => {
     setPersonas(prev => {
       const next = { ...prev };
       const p = Object.values(next).find(x => x.id === pid);
       if (p) { const key = p.dni || p.nombre.toLowerCase().replace(/\s/g, "_"); next[key] = { ...p, sctr: { poliza: sctr.poliza, aseguradora: sctr.aseg, vencimiento: sctr.vencimiento }, sctrVerificado: false }; }
       return next;
     });
-    await supa.from("personas").update({ sctr_poliza: sctr.poliza, sctr_aseguradora: sctr.aseg, sctr_vencimiento: sctr.vencimiento, sctr_verificado: false }).eq("id", pid);
   }, []);
 
   const expCSV = (data, name) => { const blob = new Blob([data], { type: "text/csv" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = name; a.click(); URL.revokeObjectURL(url); };
@@ -3479,9 +3058,9 @@ export default function App() {
       {qrPerson && <QRModal persona={qrPerson} empresa={empresas[qrPerson.empId]} onClose={() => setQrPerson(null)} />}
 
       {/* SIDEBAR */}
-      <aside style={{ width:200, background:"var(--sf)", borderRight:"1px solid var(--bd2)", display:"flex", flexDirection:"column", flexShrink:0, height:"100vh", position:"sticky", top:0, overflow:"hidden" }}>
+      <aside style={{ width:200, background:"var(--sf)", borderRight:"1px solid var(--bd2)", display:"flex", flexDirection:"column", flexShrink:0 }}>
         {/* Brand */}
-        <div style={{ padding:"16px 14px 12px", borderBottom:"1px solid var(--bd)", flexShrink:0 }}>
+        <div style={{ padding:"16px 14px 12px", borderBottom:"1px solid var(--bd)" }}>
           <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
             <svg width="22" height="22" viewBox="0 0 60 60" fill="none">
               <path d="M30 8L8 26v26h16V38h12v14h16V26L30 8z" fill="#1a52a0" fillOpacity="0.15" stroke="#1a52a0" strokeWidth="2.5" strokeLinejoin="round"/>
@@ -3493,7 +3072,7 @@ export default function App() {
         </div>
 
         {/* Nav */}
-        <nav style={{ padding:"8px 6px", flex:1, overflowY:"auto" }}>
+        <nav style={{ padding:"8px 6px", flex:1 }}>
           {ALL_TABS.map(t => (
             <button key={t.id} onClick={() => setScreen(t.id)}
               style={{ display:"flex", alignItems:"center", gap:9, padding:"8px 10px", borderRadius:8, cursor:"pointer", fontSize:13, color: cur===t.id ? "var(--ac)" : "var(--tx2)", background: cur===t.id ? "#dbeafe" : "transparent", border: cur===t.id ? "1px solid transparent" : "1px solid transparent", marginBottom:1, width:"100%", fontFamily:"var(--sans)", textAlign:"left", fontWeight: cur===t.id ? 500 : 400, transition:"all 0.12s" }}
@@ -3506,7 +3085,7 @@ export default function App() {
         </nav>
 
         {/* User footer */}
-        <div style={{ padding:"10px 14px", borderTop:"1px solid var(--bd)", flexShrink:0 }}>
+        <div style={{ padding:"10px 14px", borderTop:"1px solid var(--bd)" }}>
           <div style={{ fontSize:12, fontWeight:500, color:"var(--tx)" }}>{user.nombre}</div>
           <div style={{ fontSize:10, color:"var(--tx3)", fontFamily:"var(--mono)", marginTop:2, marginBottom:8 }}>{rol && rol.label}</div>
           <button onClick={async () => { await supa.auth.signOut(); setUser(null); }}
@@ -3528,33 +3107,13 @@ export default function App() {
         {/* Content */}
         <div style={{ flex:1, overflowY:"auto", padding:"20px" }}>
           {cur === "contratistas" && <ModContratistas empresas={empresas} onGuardar={onGuardar} onEstado={onEstado} />}
-          {cur === "registro" && <ModRegistro empresas={empresas} onRegistrar={onRegistrar} irAContratistas={() => setScreen("contratistas")} personas={personas} onActualizarSctr={onActualizarSctr} user={user} onRegistrarDespacho={async d => {
-            setDespachos(prev => [...prev, d]);
-            const emp = empresas[d.empresaId];
-            await supa.from("despachos").insert({ id: d.id, empresa_id: d.empresaId, empresa_nombre: (emp && emp.razonSocial) || "—", fecha_registro: d.fechaRegistro, chofer: d.chofer, vehiculo: d.vehiculo, mercancia: d.mercancia, estado: "Pendiente" });
-          }} />}
-          {cur === "vigilancia" && <ModVigilancia personas={personas} empresas={empresas} accesos={accesos} equipos={equipos} herramientas={herramientas} despachos={despachos} setDespachos={setDespachos} onIngreso={onIngreso} onSalida={onSalida} onEPP={onEPP} onShowQR={setQrPerson} onVistoBuenoSctr={onVistoBuenoSctr} onInspeccion={onInspeccion} onSolicitarBloqueo={onSolicitarBloqueo}
-            onAddEq={eq => setEquipos(e => [...e, eq])}
-            onSalEq={id => setEquipos(e => e.map(eq => eq.id === id ? { ...eq, salida: new Date().toISOString() } : eq))}
-            onAddHer={h => setHerramientas(hs => [...hs, h])}
-            onSalHer={id => setHerramientas(hs => hs.map(h => h.id === id ? { ...h, salida: new Date().toISOString() } : h))}
-            onIngresoDespacho={async (id, guia, hora) => {
-              setDespachos(prev => prev.map(d => d.id === id ? { ...d, guia, ingresoHora: hora, estado: "En planta" } : d));
-              await supa.from("despachos").update({ guia, ingreso_hora: hora, estado: "En planta" }).eq("id", id);
-            }}
-            onSalidaDespacho={async (id, hora) => {
-              setDespachos(prev => prev.map(d => d.id === id ? { ...d, salidaHora: hora, estado: "Salió" } : d));
-              await supa.from("despachos").update({ salida_hora: hora, estado: "Salió" }).eq("id", id);
-            }}
-            onRegistrarIncidente={async (inc) => {
-              await supa.from("incidentes_ingreso").insert({ id: inc.id, persona_id: inc.personaId, nombre: inc.nombre, dni: inc.dni, tipo_doc: inc.tipoDoc, empresa: inc.empresa, causas_texto: inc.causasTexto, detalle: inc.detalle, bloquear: inc.bloquear, fecha: inc.fecha, hora: inc.hora });
-            }}
-          />}
+          {cur === "registro" && <ModRegistro empresas={empresas} onRegistrar={onRegistrar} irAContratistas={() => setScreen("contratistas")} personas={personas} onActualizarSctr={onActualizarSctr} user={user} />}
+          {cur === "vigilancia" && <ModVigilancia personas={personas} empresas={empresas} accesos={accesos} equipos={equipos} herramientas={herramientas} onIngreso={onIngreso} onSalida={onSalida} onEPP={onEPP} onShowQR={setQrPerson} onVistoBuenoSctr={onVistoBuenoSctr} onInspeccion={onInspeccion} onSolicitarBloqueo={onSolicitarBloqueo} onAddEq={eq => setEquipos(e => [...e, eq])} onSalEq={id => setEquipos(e => e.map(eq => eq.id === id ? { ...eq, salida: nowISO() } : eq))} onAddHer={h => setHerramientas(hs => [...hs, h])} onSalHer={id => setHerramientas(hs => hs.map(h => h.id === id ? { ...h, salida: nowISO() } : h))} />}
           {cur === "safety" && <ModSafety personas={personas} onInd={onInd} onCap={onCap} />}
           {cur === "suspension" && <ModSuspensiones personas={personas} solicitudes={solicitudes} onSolicitarBloqueo={onSolicitarBloqueo} onAprobarBloqueo={onAprobarBloqueo} onDesbloquear={onDesbloquear} user={user} />}
           {cur === "vigencias" && <ModVigencias personas={personas} empresas={empresas} accesos={accesos} />}
           {cur === "bitacora" && <ModBitacora />}
-          {cur === "usr" && <ModUsuarios usuarios={usuarios} onGuardar={u => setUsuarios(p => ({ ...p, [u.usuario]: u }))} onToggle={un => setUsuarios(p => ({ ...p, [un]: { ...p[un], activo: !p[un].activo } }))} />}
+          {cur === "usr" && <ModUsuarios />}
           {cur === "reportes" && (
             <div>
               <p style={{ fontSize:14, fontWeight:500, color:"var(--tx)", marginBottom:"1rem" }}>Resumen general</p>
