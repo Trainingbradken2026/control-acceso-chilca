@@ -3820,6 +3820,7 @@ export default function App() {
   }, []);
   const onRegistrar = useCallback((empresa, form, filas) => {
     const ids = [];
+    const supaRows = []; // datos listos para Supabase, construidos dentro del setPersonas
     setPersonas(prev => {
       const next = { ...prev };
       filas.forEach(f => {
@@ -3828,7 +3829,6 @@ export default function App() {
           ? Object.values(next).find(p => p.id === f.existingId)
           : Object.values(next).find(p => p.dni === f.dni);
         if (existing) {
-          // Persona ya existe — actualizar datos editables manteniendo historial
           const storeKey = existing.dni || existing.nombre.toLowerCase().replace(/\s/g, "_");
           const dias = filas.some(f2 => f2.tipo === "induccion") ? 1 : Number(form.diasEnPlanta) || 1;
           const fechaVenc = (() => { const d = new Date((form.fechaIng || today()) + "T12:00:00"); d.setDate(d.getDate() + dias); return d.toISOString().split("T")[0]; })();
@@ -3848,8 +3848,9 @@ export default function App() {
             fechaVencPlanta: fechaVenc,
           };
           ids.push({ id: existing.id, nombre: existing.nombre, accion: "actualizado" });
+          const p = next[storeKey];
+          supaRows.push({ id: p.id, nombre: p.nombre, dni: p.dni, tipo_doc: p.tipoDoc || "DNI", cargo: p.cargo, tipo: p.tipo, emp_id: empresa.id, sctr_poliza: form.poliza, sctr_aseguradora: form.aseg, sctr_vencimiento: form.sctrFecha || null, sctr_url: form.sctrUrl || null, fecha_prevista: form.fechaIng || null, dias_en_planta: dias, fecha_venc_planta: fechaVenc, resp_bradken: { nombre: form.responsable, email: form.respEmail, tel: form.respTel }, bloqueado: false });
         } else {
-          // Persona nueva
           const id = genPId(); const color = AC[Object.keys(next).length % AC.length];
           const dias = f.tipo === "induccion" ? 1 : Number(form.diasEnPlanta) || 1;
           const fechaVenc = (() => { const d = new Date((form.fechaIng || today()) + "T12:00:00"); d.setDate(d.getDate() + dias); return d.toISOString().split("T")[0]; })();
@@ -3870,27 +3871,21 @@ export default function App() {
             bloqueado: false,
           };
           ids.push({ id: next[docKey].id, nombre: f.nombre, accion: "nuevo" });
+          supaRows.push({ id: next[docKey].id, nombre: f.nombre, dni: f.dniQ || f.dni, tipo_doc: f.tipoDoc || "DNI", cargo: f.cargo, tipo: f.tipo || f.tipoPersona || "contratista", emp_id: empresa.id, sctr_poliza: form.poliza, sctr_aseguradora: form.aseg, sctr_vencimiento: form.sctrFecha || null, sctr_url: form.sctrUrl || null, fecha_prevista: form.fechaIng || null, dias_en_planta: dias, fecha_venc_planta: fechaVenc, resp_bradken: { nombre: form.responsable, email: form.respEmail, tel: form.respTel }, bloqueado: false });
         }
       });
       return next;
     });
-    // Sincronizar personas con Supabase en background
+    // Sincronizar con Supabase usando los datos ya construidos (no depende del state)
     setTimeout(async () => {
-      for (const item of ids) {
-        const p = Object.values(personas).find(x => x.id === item.id) ||
-          (() => { let found; setPersonas(prev => { found = Object.values(prev).find(x => x.id === item.id); return prev; }); return found; })();
-        if (!p) continue;
-        await supa.from("personas").upsert({
-          id: p.id, nombre: p.nombre, dni: p.dni, tipo_doc: p.tipoDoc || "DNI",
-          cargo: p.cargo, tipo: p.tipo, emp_id: p.empId,
-          sctr_poliza: p.sctr?.poliza, sctr_aseguradora: p.sctr?.aseguradora,
-          sctr_vencimiento: p.sctr?.vencimiento, sctr_url: p.sctr?.url,
-          fecha_prevista: p.fechaPrevista, dias_en_planta: p.diasEnPlanta,
-          fecha_venc_planta: p.fechaVencPlanta,
-          resp_bradken: p.respBradken, bloqueado: false,
-        });
+      for (const row of supaRows) {
+        try {
+          await supa.from("personas").upsert(row);
+        } catch(e) {
+          console.error("Error guardando persona en Supabase:", e);
+        }
       }
-    }, 200);
+    }, 100);
     return { regId: "REG-" + String(Date.now()).slice(-4), personas: ids };
   }, [personas]);
   const onEPP = useCallback((pid, k) => setPersonas(prev => { const next = { ...prev }; const p = Object.values(next).find(x => x.id === pid); if (p) { const key = p.dni || p.nombre.toLowerCase().replace(/\s/g, "_"); next[key] = { ...p, epp: { ...p.epp, [k]: !p.epp[k] } }; } return next; }), []);
