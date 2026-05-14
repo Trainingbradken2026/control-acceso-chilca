@@ -2322,12 +2322,34 @@ function TabDespachos({ personas, empresas, despachos, onIngresoDespacho, onSali
 }
 
 // ── SAFETY ────────────────────────────────────────────────
-function ModSafety({ personas, onInd, onCap }) {
+// ── AUTORIZACIONES DE TRABAJO Y EQUIPOS ──────────────────────────────────────
+const AUTH_TRABAJOS = [
+  { id: "alturas",    label: "Trabajo en Alturas",     icon: "🧗" },
+  { id: "excavacion", label: "Excavación",              icon: "⛏" },
+  { id: "caliente",   label: "Trabajo en Caliente",     icon: "🔥" },
+  { id: "confinados", label: "Espacios Confinados",     icon: "🕳" },
+  { id: "lototo",     label: "LOTOTO",                  icon: "🔒" },
+  { id: "izaje",      label: "Izaje de Cargas",         icon: "🏗" },
+];
+const AUTH_EQUIPOS = [
+  { id: "montacargas",  label: "Montacargas",            icon: "🚜" },
+  { id: "grua",         label: "Grúa Telescópica",       icon: "🏗" },
+  { id: "rigger",       label: "Rigger",                 icon: "⛓" },
+  { id: "excavadora",   label: "Excavadora",             icon: "🚧" },
+  { id: "manlift",      label: "Manlift",                icon: "🦺" },
+  { id: "tijera",       label: "Elevador de Tijera",     icon: "✂" },
+];
+const AUTH_TODAS = [...AUTH_TRABAJOS, ...AUTH_EQUIPOS];
+
+function ModSafety({ personas, onInd, onCap, onAutorizar }) {
   const [tab, setTab] = useState("cont");
-  const [modo, setModo] = useState("pendientes"); // "pendientes" | "buscar"
+  const [modo, setModo] = useState("pendientes");
   const [q, setQ] = useState("");
   const [dates, setDates] = useState({});
   const [confirmados, setConfirmados] = useState({});
+  const [authPersonaId, setAuthPersonaId] = useState(null);
+  const [authFechas, setAuthFechas] = useState({});  // { pid: { alturas: "2026-12-31", ... } }
+  const [authGuardado, setAuthGuardado] = useState({});  // pids con autorizaciones guardadas esta sesión
   const onVistoBueno = (pid, fecha) => { onInd(pid, fecha); };
   const onAprobacionVirtual = (pid, fecha) => { onCap(pid, fecha); };
   const STAB = { padding: "6px 14px", fontSize: 12, fontWeight: 500, borderRadius: 8, cursor: "pointer", border: "0.5px solid var(--color-border-secondary)" };
@@ -2411,7 +2433,7 @@ function ModSafety({ personas, onInd, onCap }) {
   return (
     <div>
       <p style={{ fontSize: 15, fontWeight: 500, marginBottom: "1rem" }}>❤️ Panel Safety</p>
-      <TabBar tabs={[["cont","Contratistas e Inducción"],["vis","Visitantes — cap. virtual"]]} active={tab} onSelect={t => { setTab(t); setQ(""); setModo("pendientes"); }} />
+      <TabBar tabs={[["cont","Contratistas e Inducción"],["vis","Visitantes — cap. virtual"],["auth","🔐 Autorizaciones"]]} active={tab} onSelect={t => { setTab(t); setQ(""); setModo("pendientes"); }} />
 
       {/* Selector de modo */}
       <div style={{ display: "flex", gap: 8, marginBottom: "1rem" }}>
@@ -2482,6 +2504,149 @@ function ModSafety({ personas, onInd, onCap }) {
             );
             return results.map(p => tab === "cont" ? <CardCont key={p.id} p={p} /> : <CardVis key={p.id} p={p} />);
           })()}
+        </div>
+      )}
+
+      {/* ── TAB AUTORIZACIONES ── */}
+      {tab === "auth" && (
+        <TabAutorizaciones
+          lista={lista}
+          authFechas={authFechas}
+          setAuthFechas={setAuthFechas}
+          authGuardado={authGuardado}
+          setAuthGuardado={setAuthGuardado}
+          authPersonaId={authPersonaId}
+          setAuthPersonaId={setAuthPersonaId}
+          onAutorizar={onAutorizar}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── COMPONENTE AUTORIZACIONES (usado por Safety) ──────────────────────────────
+function TabAutorizaciones({ lista, authFechas, setAuthFechas, authGuardado, setAuthGuardado, authPersonaId, setAuthPersonaId, onAutorizar }) {
+  const [busqDoc, setBusqDoc] = useState("");
+  const [personaSel, setPersonaSel] = useState(null);
+  const [tabAuth, setTabAuth] = useState("trabajos");
+  const [ok, setOk] = useState("");
+
+  const matches = busqDoc.length >= 3 ? lista.filter(p =>
+    (p.dni && p.dni.includes(busqDoc)) ||
+    p.nombre.toLowerCase().includes(busqDoc.toLowerCase()) ||
+    (p.id && p.id.toLowerCase().includes(busqDoc.toLowerCase()))
+  ) : [];
+
+  const pid = personaSel ? personaSel.id : null;
+  const fPersona = pid ? (authFechas[pid] || {}) : {};
+  const updFecha = (authId, fecha) => setAuthFechas(prev => ({ ...prev, [pid]: { ...(prev[pid] || {}), [authId]: fecha } }));
+
+  const guardar = () => {
+    if (!personaSel) return;
+    onAutorizar(pid, fPersona);
+    setAuthGuardado(prev => ({ ...prev, [pid]: true }));
+    setOk("Autorizaciones guardadas para " + personaSel.nombre);
+    setTimeout(() => setOk(""), 4000);
+  };
+
+  const autorActuales = personaSel ? (personaSel.autorizaciones || {}) : {};
+  const hoy = today();
+
+  const AuthGrid = ({ items }) => (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+      {items.map(a => {
+        const fechaActual = fPersona[a.id] || autorActuales[a.id] || "";
+        const venc = fechaActual ? Math.floor((new Date(fechaActual) - new Date()) / 86400000) : null;
+        const estado = !fechaActual ? "none" : venc < 0 ? "vencido" : venc <= 30 ? "proximo" : "vigente";
+        const colores = { vigente: ["#EAF3DE","#3B6D11"], proximo: ["#FAEEDA","#854F0B"], vencido: ["#FCEBEB","#A32D2D"], none: ["var(--color-background-secondary)","var(--color-text-secondary)"] };
+        const [bg, col] = colores[estado];
+        return (
+          <div key={a.id} style={{ padding: "12px 14px", background: bg, border: "1px solid " + col + "40", borderRadius: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+              <span style={{ fontSize: 20 }}>{a.icon}</span>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: col }}>{a.label}</div>
+                {fechaActual
+                  ? <div style={{ fontSize: 11, color: col }}>{estado === "vencido" ? "⛔ Vencido" : estado === "proximo" ? "⚠ Vence en " + venc + " días" : "✅ Vigente"} — {fechaActual}</div>
+                  : <div style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>Sin autorización</div>
+                }
+              </div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <label style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>Vencimiento</label>
+              <input
+                type="date"
+                min={hoy}
+                value={fechaActual}
+                onChange={e => updFecha(a.id, e.target.value)}
+                style={{ padding: "5px 8px", border: "1px solid var(--color-border-tertiary)", borderRadius: 6, fontSize: 12, background: "var(--color-background-primary)", color: "var(--color-text-primary)", width: "100%" }}
+              />
+              {fechaActual && <button onClick={() => updFecha(a.id, "")} style={{ fontSize: 10, background: "transparent", border: "none", color: "#A32D2D", cursor: "pointer", textAlign: "left" }}>✕ Quitar autorización</button>}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+
+  return (
+    <div>
+      <div style={{ padding: "10px 14px", background: "#E6F1FB", border: "1px solid #85B7EB", borderRadius: 10, fontSize: 12, color: "#185FA5", marginBottom: "1rem" }}>
+        🔐 Asigna autorizaciones de trabajos de alto riesgo y operación de equipos. Cada autorización tiene fecha de vencimiento individual.
+      </div>
+
+      {ok && <div style={{ padding: "10px 14px", background: "#EAF3DE", border: "1px solid #A3D4B5", borderRadius: 10, fontSize: 12, color: "#3B6D11", marginBottom: "1rem" }}>✅ {ok}</div>}
+
+      {/* Buscador */}
+      <div style={{ ...SC, marginBottom: "1rem" }}>
+        <label style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-secondary)", display: "block", marginBottom: 8 }}>Buscar trabajador por nombre, DNI o ID</label>
+        <input
+          style={{ ...SI, marginBottom: 8 }}
+          placeholder="Escribe el nombre, número de documento o ID..."
+          value={busqDoc}
+          onChange={e => { setBusqDoc(e.target.value); setPersonaSel(null); }}
+        />
+        {matches.length > 0 && !personaSel && (
+          <div style={{ border: "1px solid var(--color-border-tertiary)", borderRadius: 8, overflow: "hidden" }}>
+            {matches.map(p => (
+              <div key={p.id} onClick={() => { setPersonaSel(p); setBusqDoc(p.nombre); }} style={{ padding: "10px 14px", cursor: "pointer", borderBottom: "1px solid var(--color-border-tertiary)", display: "flex", gap: 12, alignItems: "center", background: "var(--color-background-primary)" }}>
+                <Avt nombre={p.nombre} color={p.color} size={36} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: 500, fontSize: 13 }}>{p.nombre}</div>
+                  <div style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>{p.tipoDoc || "DNI"}: {p.dni} · {p.cargo}</div>
+                </div>
+                <IDB id={p.id} />
+              </div>
+            ))}
+          </div>
+        )}
+        {busqDoc.length >= 3 && !personaSel && matches.length === 0 && (
+          <div style={{ fontSize: 12, color: "var(--color-text-secondary)", padding: "8px 0" }}>No se encontró ninguna persona con ese criterio.</div>
+        )}
+      </div>
+
+      {personaSel && (
+        <div>
+          {/* Cabecera persona */}
+          <div style={{ ...SC, marginBottom: "1rem", display: "flex", alignItems: "center", gap: 12 }}>
+            <Avt nombre={personaSel.nombre} color={personaSel.color} size={48} />
+            <div style={{ flex: 1 }}>
+              <div style={{ fontWeight: 600, fontSize: 15 }}>{personaSel.nombre}</div>
+              <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>{personaSel.tipoDoc || "DNI"}: {personaSel.dni} · {personaSel.cargo}</div>
+              {authGuardado[pid] && <div style={{ fontSize: 11, color: "#3B6D11", marginTop: 4 }}>✅ Autorizaciones registradas en esta sesión</div>}
+            </div>
+            <button onClick={() => { setPersonaSel(null); setBusqDoc(""); }} style={{ background: "transparent", border: "none", cursor: "pointer", fontSize: 11, color: "var(--color-text-secondary)", textDecoration: "underline" }}>Cambiar</button>
+          </div>
+
+          {/* Tabs trabajos / equipos */}
+          <TabBar tabs={[["trabajos","⚠ Trabajos alto riesgo"],["equipos","🚜 Equipos"]]} active={tabAuth} onSelect={setTabAuth} />
+
+          {tabAuth === "trabajos" && <AuthGrid items={AUTH_TRABAJOS} />}
+          {tabAuth === "equipos" && <AuthGrid items={AUTH_EQUIPOS} />}
+
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "1rem" }}>
+            <Btn c="green" onClick={guardar}>💾 Guardar autorizaciones</Btn>
+          </div>
         </div>
       )}
     </div>
@@ -2986,9 +3151,9 @@ function ModVigencias({ personas, empresas, accesos }) {
 // ── APP ───────────────────────────────────────────────────
 
 const ROLES={
-  admin:      { label:"Administrador", color:"#A32D2D", bg:"#FCEBEB",  tabs:["contratistas","registro","vigilancia","safety","suspension","vigencias","bitacora","usr","reportes"] },
+  admin:      { label:"Administrador", color:"#A32D2D", bg:"#FCEBEB",  tabs:["contratistas","registro","vigilancia","safety","qr","suspension","vigencias","bitacora","usr","reportes"] },
   vigilancia: { label:"Vigilancia",    color:"#854F0B", bg:"#FAEEDA",  tabs:["vigilancia","suspension","vigencias","bitacora","reportes"] },
-  safety:     { label:"Safety",        color:"#0F6E56", bg:"#E1F5EE",  tabs:["contratistas","safety","reportes"] },
+  safety:     { label:"Safety",        color:"#0F6E56", bg:"#E1F5EE",  tabs:["contratistas","safety","qr","reportes"] },
   contratista:{ label:"Contratista",   color:"#185FA5", bg:"#E6F1FB",  tabs:["contratistas","registro"] },
   almacenes:  { label:"Almacenes",     color:"#5B4FCF", bg:"#EDE9FF",  tabs:["contratistas","registro"] },
 };
@@ -3063,15 +3228,18 @@ function Login({ onLogin }) {
   );
 }
 
+const QR_BASE_URL = "https://trainingbradken2026.github.io/verificar/?id=";
+
 const QRC = ({ value, size = 108 }) => {
   const ref = useRef();
+  const url = QR_BASE_URL + value;
   useEffect(() => {
     if (!ref.current) return;
     const cv = ref.current, ctx = cv.getContext("2d");
     cv.width = size; cv.height = size;
     ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, size, size);
     const cell = Math.floor(size / 21);
-    const h = value.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+    const h = url.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
     ctx.fillStyle = "#185FA5";
     for (let r = 0; r < 21; r++) for (let c = 0; c < 21; c++) {
       const corn = (r < 7 && c < 7) || (r < 7 && c > 13) || (r > 13 && c < 7);
@@ -3079,45 +3247,243 @@ const QRC = ({ value, size = 108 }) => {
       if (dark) ctx.fillRect(c * cell, r * cell, cell - 1, cell - 1);
     }
     [[1,1,5,5,"#fff"],[2,2,3,3,"#185FA5"],[15,1,5,5,"#fff"],[16,2,3,3,"#185FA5"],[1,15,5,5,"#fff"],[2,16,3,3,"#185FA5"]].forEach(([x,y,w,h2,fill]) => { ctx.fillStyle = fill; ctx.fillRect(x * cell, y * cell, w * cell, h2 * cell); });
-  }, [value, size]);
+  }, [url, size]);
   return <canvas ref={ref} style={{ borderRadius: 6, display: "block" }} />;
 };
 
 function QRModal({ persona, empresa, onClose }) {
   const print = () => {
-    const w = window.open("", "_blank");
     const ini = persona.nombre.split(" ").map(x => x[0]).slice(0, 2).join("");
+    const auths = persona.autorizaciones || {};
+    const authVigentes = AUTH_TODAS.filter(a => {
+      const f = auths[a.id];
+      return f && Math.floor((new Date(f) - new Date()) / 86400000) >= 0;
+    });
+    const authRows = authVigentes.map(a =>
+      `<tr><td style="padding:3px 8px;font-size:10px;">${a.icon} ${a.label}</td><td style="padding:3px 8px;font-size:10px;color:#666;">${auths[a.id]}</td></tr>`
+    ).join("");
+    const w = window.open("", "_blank");
     w.document.write(
-      '<html><body style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif">' +
-      '<div style="border:2px solid #185FA5;border-radius:12px;padding:20px;width:220px;text-align:center">' +
-      (false ? '' :
-        '<div style="width:70px;height:70px;border-radius:50%;background:#E6F1FB;color:#185FA5;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:22px;margin:0 auto 8px">' + ini + '</div>') +
-      '<div style="background:#E6F1FB;color:#185FA5;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:bold;display:inline-block;margin-bottom:6px">' + persona.id + '</div>' +
-      '<div style="font-weight:bold;font-size:14px">' + persona.nombre + '</div>' +
-      '<div style="font-size:11px;color:#666">' + ((empresa && empresa.razonSocial) || '') + '</div>' +
+      '<html><head><style>@media print{body{margin:0}}</style></head>' +
+      '<body style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:Arial,sans-serif;background:#f5f5f5">' +
+      '<div style="border:2px solid #185FA5;border-radius:14px;padding:20px;width:240px;text-align:center;background:#fff;box-shadow:0 4px 20px rgba(0,0,0,0.1)">' +
+      '<div style="font-size:9px;color:#888;letter-spacing:1px;margin-bottom:8px;text-transform:uppercase">Bradken Chilca · Control de Acceso</div>' +
+      '<div style="width:56px;height:56px;border-radius:50%;background:#E6F1FB;color:#185FA5;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:18px;margin:0 auto 8px">' + ini + '</div>' +
+      '<div style="font-weight:bold;font-size:14px;margin-bottom:2px">' + persona.nombre + '</div>' +
+      '<div style="font-size:11px;color:#555;margin-bottom:2px">' + (persona.cargo || "") + '</div>' +
+      '<div style="font-size:11px;color:#555;margin-bottom:8px">' + ((empresa && empresa.razonSocial) || "") + '</div>' +
+      '<div style="font-size:10px;color:#888;margin-bottom:4px">' + (persona.tipoDoc || "DNI") + ': ' + (persona.dni || "—") + '</div>' +
+      (authVigentes.length > 0 ? '<div style="margin:8px 0;border-top:1px solid #eee;padding-top:8px;text-align:left"><div style="font-size:9px;color:#185FA5;font-weight:bold;margin-bottom:4px;text-align:center">AUTORIZACIONES VIGENTES</div><table style="width:100%;border-collapse:collapse">' + authRows + '</table></div>' : '') +
+      '<div style="margin-top:10px;font-size:9px;color:#aaa">ID: ' + persona.id + '</div>' +
       '</div></body></html>'
     );
     w.document.close(); w.print();
   };
+  const auths = persona.autorizaciones || {};
+  const authVigentes = AUTH_TODAS.filter(a => { const f = auths[a.id]; return f && Math.floor((new Date(f) - new Date()) / 86400000) >= 0; });
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }}>
-      <div style={{ background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-tertiary)", borderRadius: 12, padding: "1.5rem", width: 268, textAlign: "center", position: "relative" }}>
+      <div style={{ background: "var(--color-background-primary)", border: "0.5px solid var(--color-border-tertiary)", borderRadius: 12, padding: "1.5rem", width: 290, textAlign: "center", position: "relative", maxHeight: "90vh", overflowY: "auto" }}>
         <button onClick={onClose} style={{ position: "absolute", top: 12, right: 12, background: "transparent", border: "none", cursor: "pointer", fontSize: 18, color: "var(--color-text-secondary)" }}>✕</button>
         <div style={{ fontSize: 11, color: "var(--color-text-secondary)", fontWeight: 500, marginBottom: 8 }}>BRADKEN CHILCA — CREDENCIAL</div>
         {persona.foto
           ? <img src={persona.foto} alt="" style={{ width: 68, height: 68, borderRadius: "50%", objectFit: "cover", border: "2px solid #85B7EB", marginBottom: 8 }} />
           : <div style={{ width: 68, height: 68, borderRadius: "50%", background: persona.color.bg, color: persona.color.col, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, fontWeight: 500, margin: "0 auto 8px" }}>{persona.nombre.split(" ").map(w => w[0]).slice(0, 2).join("")}</div>}
-        <div style={{ margin: "8px 0" }}><span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#E6F1FB", color: "#185FA5", border: "0.5px solid #85B7EB", borderRadius: 6, padding: "3px 9px", fontSize: 11, fontWeight: 500 }}>🪪 {persona.id}</span></div>
+        <div style={{ margin: "6px 0" }}><span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: "#E6F1FB", color: "#185FA5", border: "0.5px solid #85B7EB", borderRadius: 6, padding: "3px 9px", fontSize: 11, fontWeight: 500 }}>🪪 {persona.id}</span></div>
         <div style={{ fontWeight: 500, fontSize: 14 }}>{persona.nombre}</div>
-        <div style={{ fontSize: 12, color: "var(--color-text-secondary)", marginBottom: 12 }}>{persona.cargo || ""} — {(empresa && empresa.razonSocial) || ""}</div>
-        <div style={{ display: "flex", justifyContent: "center", marginBottom: 10 }}><QRC value={persona.id} size={108} /></div>
+        <div style={{ fontSize: 12, color: "var(--color-text-secondary)", marginBottom: 4 }}>{persona.cargo || ""} — {(empresa && empresa.razonSocial) || ""}</div>
+        <div style={{ fontSize: 11, color: "var(--color-text-secondary)", marginBottom: 10 }}>{persona.tipoDoc || "DNI"}: {persona.dni || "—"}</div>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}><QRC value={persona.id} size={108} /></div>
         <div style={{ fontSize: 11, color: "var(--color-text-secondary)", marginBottom: 12 }}>Escanea para verificar identidad</div>
+        {authVigentes.length > 0 && (
+          <div style={{ textAlign: "left", marginBottom: 12, background: "var(--color-background-secondary)", borderRadius: 8, padding: "8px 12px" }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "#185FA5", marginBottom: 6 }}>🔐 Autorizaciones vigentes</div>
+            {authVigentes.map(a => (
+              <div key={a.id} style={{ fontSize: 11, padding: "3px 0", borderBottom: "0.5px solid var(--color-border-tertiary)", display: "flex", justifyContent: "space-between" }}>
+                <span>{a.icon} {a.label}</span>
+                <span style={{ color: "var(--color-text-secondary)" }}>{auths[a.id]}</span>
+              </div>
+            ))}
+          </div>
+        )}
         <button onClick={print} style={{ padding: "5px 10px", fontSize: 12, fontWeight: 500, background: "#185FA5", color: "#fff", border: "0.5px solid #185FA5", borderRadius: 8, cursor: "pointer" }}>🖨 Imprimir credencial</button>
       </div>
     </div>
   );
 }
 
+// ── MÓDULO QR ─────────────────────────────────────────────────────────────────
+function ModQR({ personas, empresas }) {
+  const [entregados, setEntregados] = useState({});
+  const [busq, setBusq] = useState("");
+  const [filEmp, setFilEmp] = useState("todas");
+  const lista = Object.values(personas);
+  const empLista = Object.values(empresas);
+
+  const filtrada = lista.filter(p => {
+    const matchBusq = !busq || p.nombre.toLowerCase().includes(busq.toLowerCase()) || (p.dni && p.dni.includes(busq));
+    const matchEmp = filEmp === "todas" || p.empId === filEmp;
+    return matchBusq && matchEmp;
+  });
+
+  const pendientes = filtrada.filter(p => !entregados[p.id]);
+  const entregadosList = filtrada.filter(p => !!entregados[p.id]);
+
+  const imprimirUno = (p) => {
+    const emp = empresas[p.empId];
+    const ini = p.nombre.split(" ").map(x => x[0]).slice(0, 2).join("");
+    const auths = p.autorizaciones || {};
+    const authVigentes = AUTH_TODAS.filter(a => {
+      const f = auths[a.id];
+      return f && Math.floor((new Date(f) - new Date()) / 86400000) >= 0;
+    });
+    const authRows = authVigentes.map(a =>
+      `<tr><td style="padding:2px 6px;font-size:9px">${a.icon} ${a.label}</td><td style="padding:2px 6px;font-size:9px;color:#666">Vence: ${auths[a.id]}</td></tr>`
+    ).join("");
+
+    // Generar QR como data URL
+    const canvas = document.createElement("canvas");
+    canvas.width = 100; canvas.height = 100;
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, 100, 100);
+    const cell = Math.floor(100 / 21);
+    const h = p.id.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+    ctx.fillStyle = "#185FA5";
+    for (let r = 0; r < 21; r++) for (let c = 0; c < 21; c++) {
+      const corn = (r < 7 && c < 7) || (r < 7 && c > 13) || (r > 13 && c < 7);
+      const dark = corn ? ((r === 0 || r === 6 || c === 0 || c === 6) && corn) || (r >= 2 && r <= 4 && c >= 2 && c <= 4 && r < 7 && c < 7) || (r >= 2 && r <= 4 && c >= 15 && c <= 18 && r < 7) || (r >= 15 && r <= 18 && c >= 2 && c <= 4) : (r * 21 + c + h) % 3 === 0;
+      if (dark) ctx.fillRect(c * cell, r * cell, cell - 1, cell - 1);
+    }
+    [[1,1,5,5,"#fff"],[2,2,3,3,"#185FA5"],[15,1,5,5,"#fff"],[16,2,3,3,"#185FA5"],[1,15,5,5,"#fff"],[2,16,3,3,"#185FA5"]].forEach(([x,y,w2,h2,fill]) => { ctx.fillStyle = fill; ctx.fillRect(x * cell, y * cell, w2 * cell, h2 * cell); });
+    const qrData = canvas.toDataURL();
+
+    const w = window.open("", "_blank");
+    w.document.write(
+      '<html><head><style>@media print{body{margin:0;padding:0}.no-print{display:none}}body{font-family:Arial,sans-serif}</style></head>' +
+      '<body>' +
+      '<button class="no-print" onclick="window.print()" style="margin:10px;padding:8px 16px;background:#185FA5;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">🖨 Imprimir</button>' +
+      '<div style="display:flex;align-items:center;justify-content:center;min-height:80vh">' +
+      '<div style="border:2px solid #185FA5;border-radius:14px;padding:20px;width:220px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.1)">' +
+      '<div style="font-size:8px;color:#888;letter-spacing:1px;margin-bottom:8px;text-transform:uppercase">BRADKEN CHILCA · CASCO ID</div>' +
+      '<div style="width:52px;height:52px;border-radius:50%;background:#E6F1FB;color:#185FA5;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:16px;margin:0 auto 8px">' + ini + '</div>' +
+      '<div style="font-weight:bold;font-size:13px;margin-bottom:2px">' + p.nombre + '</div>' +
+      '<div style="font-size:10px;color:#555;margin-bottom:2px">' + (p.cargo || "") + '</div>' +
+      '<div style="font-size:10px;color:#555;margin-bottom:6px">' + ((emp && emp.razonSocial) || "") + '</div>' +
+      '<div style="font-size:9px;color:#888;margin-bottom:8px">' + (p.tipoDoc || "DNI") + ': ' + (p.dni || "—") + '</div>' +
+      '<img src="' + qrData + '" style="width:90px;height:90px;margin:0 auto 6px;display:block" />' +
+      '<div style="font-size:8px;color:#aaa;margin-bottom:8px">Escanea para verificar estado</div>' +
+      (authVigentes.length > 0 ? '<div style="border-top:1px solid #eee;padding-top:8px;text-align:left"><div style="font-size:8px;color:#185FA5;font-weight:bold;margin-bottom:4px;text-align:center">AUTORIZACIONES VIGENTES</div><table style="width:100%;border-collapse:collapse">' + authRows + '</table></div>' : '<div style="font-size:9px;color:#aaa;border-top:1px solid #eee;padding-top:6px">Sin autorizaciones especiales</div>') +
+      '</div></div></body></html>'
+    );
+    w.document.close();
+  };
+
+  const imprimirTodos = (lista2) => {
+    const cards = lista2.map(p => {
+      const emp = empresas[p.empId];
+      const ini = p.nombre.split(" ").map(x => x[0]).slice(0, 2).join("");
+      const auths = p.autorizaciones || {};
+      const authVigentes = AUTH_TODAS.filter(a => { const f = auths[a.id]; return f && Math.floor((new Date(f) - new Date()) / 86400000) >= 0; });
+      return `<div style="border:2px solid #185FA5;border-radius:12px;padding:14px;width:180px;text-align:center;display:inline-block;margin:8px;vertical-align:top">
+        <div style="font-size:7px;color:#888;text-transform:uppercase;margin-bottom:6px">Bradken Chilca · Casco ID</div>
+        <div style="width:44px;height:44px;border-radius:50%;background:#E6F1FB;color:#185FA5;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px;margin-bottom:6px">${ini}</div>
+        <div style="font-weight:bold;font-size:12px">${p.nombre}</div>
+        <div style="font-size:9px;color:#555">${(emp && emp.razonSocial) || ""}</div>
+        <div style="font-size:9px;color:#888;margin:4px 0">${p.tipoDoc || "DNI"}: ${p.dni || "—"}</div>
+        ${authVigentes.length > 0 ? `<div style="font-size:8px;color:#185FA5;margin-top:4px">${authVigentes.map(a => a.icon + " " + a.label).join(" · ")}</div>` : ""}
+        <div style="font-size:8px;color:#aaa;margin-top:6px">ID: ${p.id}</div>
+      </div>`;
+    }).join("");
+    const w = window.open("", "_blank");
+    w.document.write('<html><head><style>@media print{.no-print{display:none}}body{font-family:Arial;padding:10px}</style></head><body>' +
+      '<button class="no-print" onclick="window.print()" style="margin-bottom:10px;padding:8px 16px;background:#185FA5;color:#fff;border:none;border-radius:6px;cursor:pointer">🖨 Imprimir todos</button>' +
+      cards + '</body></html>');
+    w.document.close();
+  };
+
+  const RowQR = ({ p, entregado }) => {
+    const emp = empresas[p.empId];
+    const auths = p.autorizaciones || {};
+    const authVig = AUTH_TODAS.filter(a => { const f = auths[a.id]; return f && Math.floor((new Date(f) - new Date()) / 86400000) >= 0; });
+    return (
+      <div style={{ ...SC, borderLeft: entregado ? "3px solid #3B6D11" : "3px solid #185FA5", opacity: entregado ? 0.75 : 1 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <Avt nombre={p.nombre} color={p.color} size={40} />
+          <div style={{ flex: 1, minWidth: 120 }}>
+            <div style={{ fontWeight: 500, fontSize: 13 }}>{p.nombre}</div>
+            <div style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>{p.tipoDoc || "DNI"}: {p.dni} · {(emp && emp.razonSocial) || "—"}</div>
+            {authVig.length > 0 && (
+              <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 4 }}>
+                {authVig.map(a => <span key={a.id} style={{ fontSize: 10, background: "#E6F1FB", color: "#185FA5", padding: "2px 6px", borderRadius: 4 }}>{a.icon} {a.label}</span>)}
+              </div>
+            )}
+          </div>
+          <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+            <Badge t={entregado ? "green" : "blue"}>{entregado ? "✅ Entregado" : "⏳ Pendiente"}</Badge>
+            <button onClick={() => imprimirUno(p)} style={{ padding: "5px 10px", fontSize: 11, background: "#185FA5", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>🖨 Imprimir</button>
+            <button onClick={() => setEntregados(e => ({ ...e, [p.id]: !e[p.id] }))} style={{ padding: "5px 10px", fontSize: 11, background: entregado ? "#A32D2D" : "#3B6D11", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer" }}>{entregado ? "↩ Pendiente" : "✔ Marcar entregado"}</button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div>
+      <p style={{ fontSize: 15, fontWeight: 500, marginBottom: 4 }}>🪪 Módulo QR — Credenciales de casco</p>
+      <p style={{ fontSize: 12, color: "var(--color-text-secondary)", marginBottom: "1rem" }}>
+        Imprime las credenciales QR para que los trabajadores las peguen en su casco. Supervisores pueden escanear el QR para ver el estado del trabajador y sus autorizaciones.
+      </p>
+
+      {/* Filtros */}
+      <div style={{ display: "flex", gap: 10, marginBottom: "1rem", flexWrap: "wrap" }}>
+        <input style={{ ...SI, flex: 1, minWidth: 180 }} placeholder="Buscar por nombre o DNI..." value={busq} onChange={e => setBusq(e.target.value)} />
+        <select style={{ ...SI, width: "auto" }} value={filEmp} onChange={e => setFilEmp(e.target.value)}>
+          <option value="todas">Todas las empresas</option>
+          {empLista.map(e => <option key={e.id} value={e.id}>{e.razonSocial}</option>)}
+        </select>
+      </div>
+
+      {/* Resumen */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: "1rem" }}>
+        {[["Total","blue",filtrada.length],["Pendientes","amber",pendientes.length],["Entregados","green",entregadosList.length]].map(([l,t,v]) => (
+          <div key={l} style={{ padding: "10px 14px", background: "var(--color-background-secondary)", borderRadius: 10, textAlign: "center" }}>
+            <div style={{ fontSize: 22, fontWeight: 600 }}>{v}</div>
+            <div style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>{l}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Acciones masivas */}
+      <div style={{ display: "flex", gap: 8, marginBottom: "1rem", flexWrap: "wrap" }}>
+        <button onClick={() => imprimirTodos(pendientes)} disabled={!pendientes.length} style={{ padding: "7px 14px", fontSize: 12, fontWeight: 500, background: pendientes.length ? "#185FA5" : "#ccc", color: "#fff", border: "none", borderRadius: 8, cursor: pendientes.length ? "pointer" : "not-allowed" }}>🖨 Imprimir pendientes ({pendientes.length})</button>
+        <button onClick={() => imprimirTodos(filtrada)} disabled={!filtrada.length} style={{ padding: "7px 14px", fontSize: 12, fontWeight: 500, background: filtrada.length ? "#3B6D11" : "#ccc", color: "#fff", border: "none", borderRadius: 8, cursor: filtrada.length ? "pointer" : "not-allowed" }}>🖨 Imprimir todos ({filtrada.length})</button>
+      </div>
+
+      {/* Pendientes */}
+      {pendientes.length > 0 && (
+        <div>
+          <p style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>⏳ Pendientes de entrega ({pendientes.length})</p>
+          {pendientes.map(p => <RowQR key={p.id} p={p} entregado={false} />)}
+        </div>
+      )}
+
+      {/* Entregados */}
+      {entregadosList.length > 0 && (
+        <div style={{ marginTop: "1rem" }}>
+          <p style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>✅ Entregados ({entregadosList.length})</p>
+          {entregadosList.map(p => <RowQR key={p.id} p={p} entregado={true} />)}
+        </div>
+      )}
+
+      {filtrada.length === 0 && (
+        <div style={{ textAlign: "center", padding: "3rem", color: "var(--color-text-secondary)" }}>Sin personas registradas para mostrar.</div>
+      )}
+    </div>
+  );
+}
+
+// ── ALERTAS ─────────────────────────────────────────────────────────────────
 function Alertas({ personas, empresas }) {
   const al = [];
   Object.values(personas).forEach(p => {
@@ -3530,6 +3896,19 @@ export default function App() {
     await supa.from("personas").update({ capacitacion_virtual: fecha }).eq("id", pid);
   }, []);
 
+  const onAutorizar = useCallback(async (pid, auths) => {
+    setPersonas(prev => {
+      const next = { ...prev };
+      const p = Object.values(next).find(x => x.id === pid);
+      if (p) {
+        const key = p.dni || p.nombre.toLowerCase().replace(/\s/g, "_");
+        next[key] = { ...p, autorizaciones: { ...(p.autorizaciones || {}), ...auths } };
+      }
+      return next;
+    });
+    await supa.from("personas").update({ autorizaciones: auths }).eq("id", pid);
+  }, []);
+
   const onSolicitarBloqueo = useCallback(async (pid, datos) => {
     const sol = { id: "SOL-" + String(Date.now()).slice(-6), personaId: pid, ...datos, estado: "pendiente" };
     setSolicitudes(prev => [...prev, sol]);
@@ -3617,6 +3996,7 @@ export default function App() {
     registro:     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
     vigilancia:   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>,
     safety:       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>,
+    qr:           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/><line x1="18" y1="14" x2="21" y2="14"/><line x1="21" y1="17" x2="21" y2="21"/><line x1="18" y1="21" x2="21" y2="21"/></svg>,
     suspension:   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>,
     vigencias:    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>,
     bitacora:     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>,
@@ -3629,6 +4009,7 @@ export default function App() {
     { id: "registro",     label: "Registro" },
     { id: "vigilancia",   label: "Vigilancia" },
     { id: "safety",       label: "Safety" },
+    { id: "qr",           label: "QR — Credenciales" },
     { id: "suspension",   label: "Suspensiones" + (solicitudes.filter(s => s.estado === "pendiente").length > 0 ? " (" + solicitudes.filter(s => s.estado === "pendiente").length + ")" : ""), alerta: solicitudes.filter(s => s.estado === "pendiente").length > 0 },
     { id: "vigencias",    label: "Vigencias" },
     { id: "bitacora",     label: "Bitácora" },
@@ -3713,7 +4094,8 @@ export default function App() {
               await supa.from("incidentes_ingreso").insert({ id: inc.id, persona_id: inc.personaId, nombre: inc.nombre, dni: inc.dni, tipo_doc: inc.tipoDoc, empresa: inc.empresa, causas_texto: inc.causasTexto, detalle: inc.detalle, bloquear: inc.bloquear, fecha: inc.fecha, hora: inc.hora });
             }}
           />}
-          {cur === "safety" && <ModSafety personas={personas} onInd={onInd} onCap={onCap} />}
+          {cur === "safety" && <ModSafety personas={personas} onInd={onInd} onCap={onCap} onAutorizar={onAutorizar} />}
+          {cur === "qr" && <ModQR personas={personas} empresas={empresas} />}
           {cur === "suspension" && <ModSuspensiones personas={personas} empresas={empresas} solicitudes={solicitudes} onSolicitarBloqueo={onSolicitarBloqueo} onAprobarBloqueo={onAprobarBloqueo} onDesbloquear={onDesbloquear} onAprobarBloqueoEmp={(sol) => { onEstado(sol.empresaId, sol.accion, { motivo: sol.motivo, fecha: sol.fecha, solicitante: sol.solicitante }); setSolicitudes(prev => prev.map(s => s.id === sol.id ? { ...s, estado: "aprobado" } : s)); }} onRechazarEmp={(id) => setSolicitudes(prev => prev.map(s => s.id === id ? { ...s, estado: "rechazado" } : s))} user={user} />}
           {cur === "vigencias" && <ModVigencias personas={personas} empresas={empresas} accesos={accesos} />}
           {cur === "bitacora" && <ModBitacora />}
