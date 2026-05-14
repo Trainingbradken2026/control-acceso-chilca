@@ -583,56 +583,62 @@ function ModRegistro({ empresas, personas, onRegistrar, onActualizarSctr, irACon
 
       {regTab === "misreg" && (
         <div>
-          {misRegistros.length === 0 ? (
+          <p style={{ fontSize: 13, color: "var(--color-text-secondary)", marginBottom: "1rem" }}>
+            Personas registradas en el sistema. Haz clic en <strong>✏ Editar</strong> para corregir datos.
+          </p>
+          {Object.values(personas).length === 0 ? (
             <div style={{ textAlign: "center", padding: "3rem", color: "var(--color-text-secondary)" }}>
               <div style={{ fontSize: 32, marginBottom: 8 }}>📁</div>
-              <div>Aún no has realizado ningún registro en esta sesión.</div>
+              <div>No hay personas registradas aún.</div>
             </div>
-          ) : misRegistros.map(reg => {
-            const emp = empresas[reg.empId];
+          ) : Object.values(personas).map(persona => {
+            const emp = empresas[persona.empId];
             return (
-              <div key={reg.id} style={SC}>
-                <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 10 }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 500, fontSize: 14 }}>{reg.empresa}</div>
-                    <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>RUC: {reg.ruc} · {new Date(reg.fecha).toLocaleString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
-                    <div style={{ fontSize: 12, color: "var(--color-text-secondary)", marginTop: 2 }}>
-                      Fecha prevista: {reg.form.fechaIng} · SCTR: {reg.form.poliza || "—"} · Vence: {reg.form.sctrFecha || "—"}
+              <div key={persona.id} style={{ ...SC, marginBottom: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                  <Avt nombre={persona.nombre} color={persona.color} size={40} />
+                  <div style={{ flex: 1, minWidth: 150 }}>
+                    <div style={{ fontWeight: 500, fontSize: 14 }}>{persona.nombre}</div>
+                    <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
+                      {persona.tipoDoc || "DNI"}: {persona.dni} · {persona.cargo || "Sin cargo"}
                     </div>
                     <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
-                      Responsable: {reg.form.responsable} · Tel: {reg.form.respTel || "—"}
+                      {(emp && emp.razonSocial) || "—"} · {persona.tipo}
                     </div>
+                    {persona.fechaVencPlanta && (
+                      <div style={{ fontSize: 11, color: persona.fechaVencPlanta >= today() ? "#3B6D11" : "#A32D2D", marginTop: 2 }}>
+                        {persona.fechaVencPlanta >= today() ? "✅ Activo hasta " : "❌ Venció "}{persona.fechaVencPlanta}
+                      </div>
+                    )}
                   </div>
-                  <Badge t="blue">{reg.id}</Badge>
-                </div>
-                <div style={{ marginBottom: 10 }}>
-                  <p style={{ fontSize: 12, fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: 6 }}>Personas registradas ({reg.personas.length}):</p>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                    {reg.personas.map(p => {
-                      const persona = Object.values(personas).find(x => x.id === p.id);
-                      return (
-                        <div key={p.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", background: "var(--color-background-secondary)", borderRadius: 8 }}>
-                          <div style={{ flex: 1 }}>
-                            <span style={{ fontWeight: 500, fontSize: 13 }}>{p.nombre}</span>
-                            <span style={{ fontSize: 11, color: "var(--color-text-secondary)", marginLeft: 8 }}>{p.id}</span>
-                            <Badge t={p.accion === "nuevo" ? "green" : "blue"} >{p.accion === "nuevo" ? "Nuevo" : "Actualizado"}</Badge>
-                          </div>
-                          {persona && (
-                            <Btn sm onClick={() => {
-                              // Cargar la persona en modo edición
-                              setEmpSel(emp || empresas[persona.empId]);
-                              setRows([{
-                                dniQ: persona.dni, dniStatus: "listo",
-                                nombre: persona.nombre, cargo: persona.cargo,
-                                tipo: persona.tipo, existingId: persona.id,
-                              }]);
-                              setForm({ ...reg.form });
-                              setRegTab("nuevo");
-                            }}>✏ Editar</Btn>
-                          )}
-                        </div>
-                      );
-                    })}
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    <Badge t={persona.tipo === "contratista" ? "blue" : persona.tipo === "induccion" ? "amber" : "teal"}>
+                      {persona.tipo === "contratista" ? "Contratista" : persona.tipo === "induccion" ? "Inducción" : "Visita"}
+                    </Badge>
+                    <IDB id={persona.id} />
+                    <Btn sm onClick={() => {
+                      setEmpSel(emp || null);
+                      setBusq((emp && emp.razonSocial) || "");
+                      setRows([{
+                        dniQ: persona.dni, dniStatus: "listo",
+                        tipoDoc: persona.tipoDoc || "DNI",
+                        nombre: persona.nombre, cargo: persona.cargo,
+                        tipo: persona.tipo, existingId: persona.id,
+                      }]);
+                      setForm(prev => ({
+                        ...prev,
+                        responsable: persona.respBradken?.nombre || "",
+                        respEmail: persona.respBradken?.email || "",
+                        respTel: persona.respBradken?.tel || "",
+                        poliza: persona.sctr?.poliza || "",
+                        aseg: persona.sctr?.aseguradora || "",
+                        sctrFecha: persona.sctr?.vencimiento || "",
+                        sctrUrl: persona.sctr?.url || "",
+                        fechaIng: persona.fechaPrevista || today(),
+                        diasEnPlanta: persona.diasEnPlanta || 1,
+                      }));
+                      setRegTab("nuevo");
+                    }}>✏ Editar</Btn>
                   </div>
                 </div>
               </div>
@@ -889,16 +895,14 @@ function ModRegistro({ empresas, personas, onRegistrar, onActualizarSctr, irACon
                     <span style={{ fontSize: 16 }}>🔄</span>
                     <div>
                       <strong>Persona encontrada</strong> — {r._empAnterior}
-                      <div style={{ fontSize: 11, marginTop: 2 }}>Los campos están pre-llenados. Edita lo que haya cambiado y confirma.</div>
+                      <div style={{ fontSize: 11, marginTop: 2 }}>Los campos están pre-llenados. Edita lo que haya cambiado y confirma abajo.</div>
                     </div>
-                    <Btn sm c="blue" onClick={() => updRI("dniStatus", "listo")}>✔ Confirmar</Btn>
                   </div>
                 )}
                 {r.dniStatus === "nuevo" && (
                   <div style={{ padding: "8px 12px", background: "#EAF3DE", border: "0.5px solid #97C459", borderRadius: 8, fontSize: 12, color: "#3B6D11", marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ fontSize: 16 }}>✨</span>
-                    <div><strong>Documento no registrado</strong> — completa los datos y confirma.</div>
-                    <Btn sm c="green" onClick={() => { if (!r.nombre.trim()) { alert("Ingresa el nombre."); return; } updRI("dniStatus", "listo"); }}>✔ Confirmar</Btn>
+                    <div><strong>Documento no registrado</strong> — completa los datos y confirma abajo.</div>
                   </div>
                 )}
                 {r.dniStatus === "listo" && (
@@ -1032,7 +1036,47 @@ function ModRegistro({ empresas, personas, onRegistrar, onActualizarSctr, irACon
         </div>
       )}
 
-      {empSel && (
+      {/* Botón Confirmar al final de cada row - visible cuando hay datos sin confirmar */}
+      {rows.map((r, i) => {
+        const updRI2 = (k, v) => setRows(prev => prev.map((x, j) => j === i ? { ...x, [k]: v } : x));
+        if (r.dniStatus !== "nuevo" && r.dniStatus !== "existe") return null;
+
+        // Cambio 3: detectar duplicados activos
+        const personaExistente = r.existingId ? Object.values(personas).find(p => p.id === r.existingId) : null;
+        const esDuplicado = personaExistente && (() => {
+          const hoy = today();
+          const enPlanta = personaExistente.fechaVencPlanta && personaExistente.fechaVencPlanta >= hoy;
+          const tieneInd = personaExistente.induccion;
+          return enPlanta || tieneInd;
+        })();
+
+        return (
+          <div key={"conf-" + i} style={{ margin: "0 0 8px 0" }}>
+            {esDuplicado && (
+              <div style={{ padding: "10px 14px", background: "#FAEEDA", border: "1px solid #F0B429", borderRadius: 10, fontSize: 12, color: "#854F0B", marginBottom: 8, display: "flex", gap: 10, alignItems: "flex-start" }}>
+                <span style={{ fontSize: 18 }}>⚠</span>
+                <div>
+                  <strong>Usuario ya registrado</strong>
+                  {personaExistente.fechaVencPlanta && personaExistente.fechaVencPlanta >= today() && (
+                    <div style={{ marginTop: 2 }}>Tiene días en planta activos hasta: <strong>{personaExistente.fechaVencPlanta}</strong></div>
+                  )}
+                  {personaExistente.induccion && (
+                    <div style={{ marginTop: 2 }}>Inducción registrada: <strong>{personaExistente.induccion}</strong></div>
+                  )}
+                  <div style={{ marginTop: 4, fontSize: 11 }}>Puedes confirmar para actualizar sus datos o cancelar si fue un error.</div>
+                </div>
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <Btn sm onClick={() => { updRI2("dniStatus", "idle"); updRI2("dniQ", ""); updRI2("nombre", ""); }}>✕ Cancelar</Btn>
+              {r.dniStatus === "existe"
+                ? <Btn sm c="blue" onClick={() => updRI2("dniStatus", "listo")}>✔ Confirmar persona</Btn>
+                : <Btn sm c="green" onClick={() => { if (!r.nombre.trim()) { alert("Ingresa el nombre completo."); return; } updRI2("dniStatus", "listo"); }}>✔ Confirmar persona</Btn>
+              }
+            </div>
+          </div>
+        );
+      })}
         <div style={SC}>
           <p style={{ fontSize: 12, fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: "1rem" }}>Paso 3 — SCTR</p>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -3216,7 +3260,7 @@ function ModVigencias({ personas, empresas, accesos }) {
 const ROLES={
   admin:      { label:"Administrador", color:"#A32D2D", bg:"#FCEBEB",  tabs:["contratistas","registro","vigilancia","safety","qr","suspension","vigencias","bitacora","usr","reportes"] },
   vigilancia: { label:"Vigilancia",    color:"#854F0B", bg:"#FAEEDA",  tabs:["vigilancia","suspension","vigencias","bitacora","reportes"] },
-  safety:     { label:"Safety",        color:"#0F6E56", bg:"#E1F5EE",  tabs:["contratistas","safety","qr","reportes"] },
+  safety:     { label:"Safety",        color:"#0F6E56", bg:"#E1F5EE",  tabs:["contratistas","registro","safety","qr","reportes"] },
   contratista:{ label:"Contratista",   color:"#185FA5", bg:"#E6F1FB",  tabs:["contratistas","registro"] },
   almacenes:  { label:"Almacenes",     color:"#5B4FCF", bg:"#EDE9FF",  tabs:["contratistas","registro"] },
 };
