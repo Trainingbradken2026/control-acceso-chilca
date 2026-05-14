@@ -3759,7 +3759,7 @@ export default function App() {
       id: emp.id, ruc: emp.ruc, razon_social: emp.razonSocial, rubro: emp.rubro,
       contacto_nombre: emp.contactoNombre, contacto_email: emp.contactoEmail,
       estado: emp.estado, observacion: emp.observacion
-    });
+    }, { onConflict: "id" });
   }, []);
   const onEstado = useCallback((id, est, obs) => {
     const o = typeof obs === "object" ? obs : { motivo: String(obs || ""), fecha: today() };
@@ -3827,7 +3827,7 @@ export default function App() {
     setTimeout(async () => {
       for (const row of supaRows) {
         try {
-          await supa.from("personas").upsert(row);
+          await supa.from("personas").upsert(row, { onConflict: "id" });
         } catch(e) {
           console.error("Error guardando persona en Supabase:", e);
         }
