@@ -737,7 +737,7 @@ function ModRegistro({ empresas, personas, onRegistrar, onActualizarSctr, irACon
                     return (
                       <div key={p.id} style={{ display:"flex", alignItems:"center", gap:10, padding:"9px 12px", borderBottom:"0.5px solid var(--color-border-tertiary)", background: sel ? "#EAF3DE" : "var(--color-background-primary)" }}>
                         <div style={{ flex:1 }}>
-                          <div style={{ fontSize:13, fontWeight:500 }}>{p.nombre} <span style={{ fontSize:11, color:"var(--color-text-secondary)", fontWeight:400 }}>· DNI {p.dni || "—"} · {p.id}</span></div>
+                          <div style={{ fontSize:13, fontWeight:500 }}>{p.nombre} <span style={{ fontSize:11, color:"var(--color-text-secondary)", fontWeight:400 }}>· {p.tipoDoc || "DNI"} {p.dni || "—"} · {p.id}</span></div>
                           <div style={{ fontSize:11, color:"var(--color-text-secondary)" }}>{p.cargo || "Sin cargo"} — {(emp && emp.razonSocial) || "—"}</div>
                         </div>
                         {sel
@@ -1072,8 +1072,6 @@ function ModRegistro({ empresas, personas, onRegistrar, onActualizarSctr, irACon
           </div>
         );
       })}
-      {empSel && (
-        <>
         <div style={SC}>
           <p style={{ fontSize: 12, fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: "1rem" }}>Paso 3 — SCTR</p>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -1130,13 +1128,11 @@ function ModRegistro({ empresas, personas, onRegistrar, onActualizarSctr, irACon
         </div>
       )}
 
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginBottom: "1rem" }}>
+      {empSel && (
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginBottom: "1rem" }}>
           <Btn onClick={() => { setEmpSel(null); setBusq(""); setRows([{ dniQ: "", dniStatus: "idle", nombre: "", cargo: "", tipo: "contratista", tipoDoc: "DNI", existingId: null }]); setForm({ responsable: "", respEmail: "", respTel: "", tipoVisita: "Contratista - Mantenimiento", fechaIng: today(), diasEnPlanta: 1, poliza: "", aseg: "", sctrFecha: "", sctrUrl: "", registradoPor: "bradken", regNombre: "", regCargo: "" }); }}>✕ Cancelar</Btn>
           <Btn c="blue" onClick={registrar}>✔ Confirmar registro</Btn>
         </div>
-          </div>
-        </>
       )}
 
       </div>
@@ -2419,7 +2415,7 @@ function ModSafety({ personas, onInd, onCap, onAutorizar }) {
           <Avt nombre={p.nombre} color={p.color} size={44} />
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 500, fontSize: 14 }}>{p.nombre}</div>
-            <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>{p.cargo || "Sin cargo"} · DNI {p.dni || "—"}</div>
+            <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>{p.cargo || "Sin cargo"} · {p.tipoDoc || "DNI"} {p.dni || "—"}</div>
             <div style={{ marginTop: 4 }}><Badge t={badgeT}>{badgeL}</Badge></div>
           </div>
           <IDB id={p.id} />
@@ -2453,7 +2449,7 @@ function ModSafety({ personas, onInd, onCap, onAutorizar }) {
         <Avt nombre={p.nombre} color={p.color} size={44} />
         <div style={{ flex: 1 }}>
           <div style={{ fontWeight: 500, fontSize: 14 }}>{p.nombre}</div>
-          <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>{p.cargo || "Sin cargo"} · DNI {p.dni || "—"}</div>
+          <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>{p.cargo || "Sin cargo"} · {p.tipoDoc || "DNI"} {p.dni || "—"}</div>
         </div>
         <IDB id={p.id} />
       </div>
@@ -3028,7 +3024,7 @@ function ModSuspensiones({ personas, empresas, solicitudes, onSolicitarBloqueo, 
                   <Avt nombre={p.nombre} color={p.color} size={40} />
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 500, fontSize: 14 }}>{p.nombre}</div>
-                    <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>DNI: {p.dni || "—"} · {p.cargo || "—"}</div>
+                    <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>{p.tipoDoc || "DNI"}: {p.dni || "—"} · {p.cargo || "—"}</div>
                     {p.motivoBloqueo && <div style={{ marginTop: 4, fontSize: 12, color: "#A32D2D" }}>Motivo: {p.motivoBloqueo}</div>}
                     {p.fechaBloqueo && <div style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>Suspendido: {p.fechaBloqueo}</div>}
                   </div>
@@ -3067,7 +3063,7 @@ function ModSuspensiones({ personas, empresas, solicitudes, onSolicitarBloqueo, 
                       <Avt nombre={p.nombre} color={p.color} size={40} />
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 500, fontSize: 14 }}>{p.nombre}</div>
-                        <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>DNI: {p.dni || "—"} · {p.cargo || "—"} · {p.id}</div>
+                        <div style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>{p.tipoDoc || "DNI"}: {p.dni || "—"} · {p.cargo || "—"} · {p.id}</div>
                         {p.bloqueado && <Badge t="red">Ya suspendido</Badge>}
                         {yaEnCola && <Badge t="amber">Solicitud pendiente</Badge>}
                       </div>
