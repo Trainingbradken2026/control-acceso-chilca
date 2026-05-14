@@ -1140,8 +1140,6 @@ function ModRegistro({ empresas, personas, onRegistrar, onActualizarSctr, irACon
     </div>
   );
 }
-
-// ── VIGILANCIA ────────────────────────────────────────────
 function ModVigilancia({ personas, empresas, accesos, equipos, herramientas, despachos, setDespachos, onIngreso, onSalida, onEPP, onAddEq, onSalEq, onAddHer, onSalHer, onShowQR, onVistoBuenoSctr, onInspeccion, onSolicitarBloqueo }) {
   const [tab, setTab] = useState("programados");
   const [agenteNombre, setAgenteNombre] = useState("");
