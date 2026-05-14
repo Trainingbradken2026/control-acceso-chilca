@@ -2552,6 +2552,19 @@ function TabAutorizaciones({ lista, authFechas, setAuthFechas, authGuardado, set
   const autorActuales = personaSel ? (personaSel.autorizaciones || {}) : {};
   const hoy = today();
 
+  // Helper: convierte dd/mm/yyyy → yyyy-mm-dd para guardar
+  const parseDMY = (s) => {
+    const [d, m, y] = (s || "").split("/");
+    if (!d || !m || !y || y.length !== 4) return "";
+    return `${y}-${m.padStart(2,"0")}-${d.padStart(2,"0")}`;
+  };
+  // Helper: convierte yyyy-mm-dd → dd/mm/yyyy para mostrar
+  const fmtDMY = (s) => {
+    if (!s) return "";
+    const [y, m, d] = s.split("-");
+    return `${d}/${m}/${y}`;
+  };
+
   const AuthGrid = ({ items }) => (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
       {items.map(a => {
@@ -2567,19 +2580,31 @@ function TabAutorizaciones({ lista, authFechas, setAuthFechas, authGuardado, set
               <div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: col }}>{a.label}</div>
                 {fechaActual
-                  ? <div style={{ fontSize: 11, color: col }}>{estado === "vencido" ? "⛔ Vencido" : estado === "proximo" ? "⚠ Vence en " + venc + " días" : "✅ Vigente"} — {fechaActual}</div>
+                  ? <div style={{ fontSize: 11, color: col }}>{estado === "vencido" ? "⛔ Vencido" : estado === "proximo" ? "⚠ Vence en " + venc + " días" : "✅ Vigente"} — {fmtDMY(fechaActual)}</div>
                   : <div style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>Sin autorización</div>
                 }
               </div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <label style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>Vencimiento</label>
+              <label style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>Vencimiento (dd/mm/yyyy)</label>
               <input
-                type="date"
-                min={hoy}
-                value={fechaActual}
-                onChange={e => updFecha(a.id, e.target.value)}
-                style={{ padding: "5px 8px", border: "1px solid var(--color-border-tertiary)", borderRadius: 6, fontSize: 12, background: "var(--color-background-primary)", color: "var(--color-text-primary)", width: "100%" }}
+                type="text"
+                placeholder="dd/mm/yyyy"
+                maxLength={10}
+                value={fmtDMY(fPersona[a.id] || "")}
+                onChange={e => {
+                  let v = e.target.value.replace(/[^0-9/]/g, "");
+                  // Auto insertar / en posición 2 y 5
+                  if (v.length === 2 && !v.includes("/")) v = v + "/";
+                  if (v.length === 5 && v.split("/").length === 2) v = v + "/";
+                  // Convertir a ISO cuando está completo dd/mm/yyyy
+                  const iso = parseDMY(v);
+                  if (iso) updFecha(a.id, iso);
+                  else if (!v) updFecha(a.id, "");
+                  // Forzar re-render con valor display
+                  e.target.value = v;
+                }}
+                style={{ padding: "5px 8px", border: "1px solid var(--color-border-tertiary)", borderRadius: 6, fontSize: 12, background: "var(--color-background-primary)", color: "var(--color-text-primary)", width: "100%", fontFamily: "monospace" }}
               />
               {fechaActual && <button onClick={() => updFecha(a.id, "")} style={{ fontSize: 10, background: "transparent", border: "none", color: "#A32D2D", cursor: "pointer", textAlign: "left" }}>✕ Quitar autorización</button>}
             </div>
