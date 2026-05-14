@@ -3230,25 +3230,36 @@ function Login({ onLogin }) {
 
 const QR_BASE_URL = "https://trainingbradken2026.github.io/verificar/?id=";
 
+// QRC usando qrcodejs via CDN — mismo que el sistema de referencia
 const QRC = ({ value, size = 108 }) => {
   const ref = useRef();
-  const url = QR_BASE_URL + value;
+  const url = QR_BASE_URL + encodeURIComponent(value);
   useEffect(() => {
     if (!ref.current) return;
-    const cv = ref.current, ctx = cv.getContext("2d");
-    cv.width = size; cv.height = size;
-    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, size, size);
-    const cell = Math.floor(size / 21);
-    const h = url.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
-    ctx.fillStyle = "#185FA5";
-    for (let r = 0; r < 21; r++) for (let c = 0; c < 21; c++) {
-      const corn = (r < 7 && c < 7) || (r < 7 && c > 13) || (r > 13 && c < 7);
-      const dark = corn ? ((r === 0 || r === 6 || c === 0 || c === 6) && corn) || (r >= 2 && r <= 4 && c >= 2 && c <= 4 && r < 7 && c < 7) || (r >= 2 && r <= 4 && c >= 15 && c <= 18 && r < 7) || (r >= 15 && r <= 18 && c >= 2 && c <= 4) : (r * 21 + c + h) % 3 === 0;
-      if (dark) ctx.fillRect(c * cell, r * cell, cell - 1, cell - 1);
+    ref.current.innerHTML = "";
+    // Cargar qrcodejs dinámicamente si no está disponible
+    const genQR = () => {
+      if (window.QRCode) {
+        new window.QRCode(ref.current, {
+          text: url,
+          width: size,
+          height: size,
+          colorDark: "#000000",
+          colorLight: "#ffffff",
+          correctLevel: window.QRCode.CorrectLevel.M,
+        });
+      }
+    };
+    if (window.QRCode) {
+      genQR();
+    } else {
+      const script = document.createElement("script");
+      script.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
+      script.onload = genQR;
+      document.head.appendChild(script);
     }
-    [[1,1,5,5,"#fff"],[2,2,3,3,"#185FA5"],[15,1,5,5,"#fff"],[16,2,3,3,"#185FA5"],[1,15,5,5,"#fff"],[2,16,3,3,"#185FA5"]].forEach(([x,y,w,h2,fill]) => { ctx.fillStyle = fill; ctx.fillRect(x * cell, y * cell, w * cell, h2 * cell); });
   }, [url, size]);
-  return <canvas ref={ref} style={{ borderRadius: 6, display: "block" }} />;
+  return <div ref={ref} style={{ display: "inline-block", lineHeight: 0 }} />;
 };
 
 function QRModal({ persona, empresa, onClose }) {
@@ -3330,74 +3341,87 @@ function ModQR({ personas, empresas }) {
   const entregadosList = filtrada.filter(p => !!entregados[p.id]);
 
   const imprimirUno = (p) => {
-    const emp = empresas[p.empId];
-    const ini = p.nombre.split(" ").map(x => x[0]).slice(0, 2).join("");
     const auths = p.autorizaciones || {};
     const authVigentes = AUTH_TODAS.filter(a => {
       const f = auths[a.id];
       return f && Math.floor((new Date(f) - new Date()) / 86400000) >= 0;
     });
-    const authRows = authVigentes.map(a =>
-      `<tr><td style="padding:2px 6px;font-size:9px">${a.icon} ${a.label}</td><td style="padding:2px 6px;font-size:9px;color:#666">Vence: ${auths[a.id]}</td></tr>`
-    ).join("");
-
-    // Generar QR como data URL
-    const canvas = document.createElement("canvas");
-    canvas.width = 100; canvas.height = 100;
-    const ctx = canvas.getContext("2d");
-    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, 100, 100);
-    const cell = Math.floor(100 / 21);
-    const h = p.id.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
-    ctx.fillStyle = "#185FA5";
-    for (let r = 0; r < 21; r++) for (let c = 0; c < 21; c++) {
-      const corn = (r < 7 && c < 7) || (r < 7 && c > 13) || (r > 13 && c < 7);
-      const dark = corn ? ((r === 0 || r === 6 || c === 0 || c === 6) && corn) || (r >= 2 && r <= 4 && c >= 2 && c <= 4 && r < 7 && c < 7) || (r >= 2 && r <= 4 && c >= 15 && c <= 18 && r < 7) || (r >= 15 && r <= 18 && c >= 2 && c <= 4) : (r * 21 + c + h) % 3 === 0;
-      if (dark) ctx.fillRect(c * cell, r * cell, cell - 1, cell - 1);
-    }
-    [[1,1,5,5,"#fff"],[2,2,3,3,"#185FA5"],[15,1,5,5,"#fff"],[16,2,3,3,"#185FA5"],[1,15,5,5,"#fff"],[2,16,3,3,"#185FA5"]].forEach(([x,y,w2,h2,fill]) => { ctx.fillStyle = fill; ctx.fillRect(x * cell, y * cell, w2 * cell, h2 * cell); });
-    const qrData = canvas.toDataURL();
-
+    const qrUrl = `https://trainingbradken2026.github.io/verificar/?id=${p.id}`;
+    const authArea = authVigentes.length > 0
+      ? `<div style="margin-top:3px;border-top:.4px solid #eee;padding-top:2px;text-align:left">${authVigentes.map(a => `<div style="font-size:5.5px;color:#444;margin-top:1px">${a.icon} ${a.label} <span style="color:#aaa">· ${auths[a.id]}</span></div>`).join("")}</div>`
+      : "";
     const w = window.open("", "_blank");
-    w.document.write(
-      '<html><head><style>@media print{body{margin:0;padding:0}.no-print{display:none}}body{font-family:Arial,sans-serif}</style></head>' +
-      '<body>' +
-      '<button class="no-print" onclick="window.print()" style="margin:10px;padding:8px 16px;background:#185FA5;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px">🖨 Imprimir</button>' +
-      '<div style="display:flex;align-items:center;justify-content:center;min-height:80vh">' +
-      '<div style="border:2px solid #185FA5;border-radius:14px;padding:20px;width:220px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.1)">' +
-      '<div style="font-size:8px;color:#888;letter-spacing:1px;margin-bottom:8px;text-transform:uppercase">BRADKEN CHILCA · CASCO ID</div>' +
-      '<div style="width:52px;height:52px;border-radius:50%;background:#E6F1FB;color:#185FA5;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:16px;margin:0 auto 8px">' + ini + '</div>' +
-      '<div style="font-weight:bold;font-size:13px;margin-bottom:2px">' + p.nombre + '</div>' +
-      '<div style="font-size:10px;color:#555;margin-bottom:2px">' + (p.cargo || "") + '</div>' +
-      '<div style="font-size:10px;color:#555;margin-bottom:6px">' + ((emp && emp.razonSocial) || "") + '</div>' +
-      '<div style="font-size:9px;color:#888;margin-bottom:8px">' + (p.tipoDoc || "DNI") + ': ' + (p.dni || "—") + '</div>' +
-      '<img src="' + qrData + '" style="width:90px;height:90px;margin:0 auto 6px;display:block" />' +
-      '<div style="font-size:8px;color:#aaa;margin-bottom:8px">Escanea para verificar estado</div>' +
-      (authVigentes.length > 0 ? '<div style="border-top:1px solid #eee;padding-top:8px;text-align:left"><div style="font-size:8px;color:#185FA5;font-weight:bold;margin-bottom:4px;text-align:center">AUTORIZACIONES VIGENTES</div><table style="width:100%;border-collapse:collapse">' + authRows + '</table></div>' : '<div style="font-size:9px;color:#aaa;border-top:1px solid #eee;padding-top:6px">Sin autorizaciones especiales</div>') +
-      '</div></div></body></html>'
-    );
+    w.document.write(`<!DOCTYPE html><html><head><title>QR ${p.nombre}</title>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
+      <style>
+        @page{size:5cm 5.5cm;margin:1mm}
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{display:flex;align-items:center;justify-content:center;min-height:100vh;background:#fff;font-family:Arial,sans-serif}
+        .s{width:4.5cm;border:.4px solid #ddd;padding:6px;text-align:center;border-radius:3px}
+        .nm{font-size:7.5px;font-weight:bold;margin-top:4px;line-height:1.3}
+        .cg{font-size:6px;color:#777;margin-top:1px}
+        .id{font-size:6px;color:#aaa;font-family:monospace;margin-top:1px}
+        .br{font-size:6px;color:#bbb;margin-top:2px;text-transform:uppercase;letter-spacing:.04em}
+      </style>
+    </head><body>
+      <div class="s">
+        <div id="q" style="display:flex;justify-content:center"></div>
+        <div class="nm">${p.nombre}</div>
+        <div class="cg">${p.cargo || ""}</div>
+        <div class="id">${p.tipoDoc || "DNI"}: ${p.dni || "—"} · ${p.id}</div>
+        <div class="br">Bradken Chilca</div>
+        ${authArea}
+      </div>
+      <script>
+        new QRCode(document.getElementById("q"),{text:"${qrUrl}",width:144,height:144,colorDark:"#000",colorLight:"#fff"});
+        setTimeout(()=>window.print(),900);
+      <\/script>
+    </body></html>`);
     w.document.close();
   };
 
   const imprimirTodos = (lista2) => {
+    if (!lista2.length) return;
+    const base = "https://trainingbradken2026.github.io/verificar/?id=";
     const cards = lista2.map(p => {
-      const emp = empresas[p.empId];
-      const ini = p.nombre.split(" ").map(x => x[0]).slice(0, 2).join("");
       const auths = p.autorizaciones || {};
-      const authVigentes = AUTH_TODAS.filter(a => { const f = auths[a.id]; return f && Math.floor((new Date(f) - new Date()) / 86400000) >= 0; });
-      return `<div style="border:2px solid #185FA5;border-radius:12px;padding:14px;width:180px;text-align:center;display:inline-block;margin:8px;vertical-align:top">
-        <div style="font-size:7px;color:#888;text-transform:uppercase;margin-bottom:6px">Bradken Chilca · Casco ID</div>
-        <div style="width:44px;height:44px;border-radius:50%;background:#E6F1FB;color:#185FA5;display:inline-flex;align-items:center;justify-content:center;font-weight:bold;font-size:14px;margin-bottom:6px">${ini}</div>
-        <div style="font-weight:bold;font-size:12px">${p.nombre}</div>
-        <div style="font-size:9px;color:#555">${(emp && emp.razonSocial) || ""}</div>
-        <div style="font-size:9px;color:#888;margin:4px 0">${p.tipoDoc || "DNI"}: ${p.dni || "—"}</div>
-        ${authVigentes.length > 0 ? `<div style="font-size:8px;color:#185FA5;margin-top:4px">${authVigentes.map(a => a.icon + " " + a.label).join(" · ")}</div>` : ""}
-        <div style="font-size:8px;color:#aaa;margin-top:6px">ID: ${p.id}</div>
+      const authVig = AUTH_TODAS.filter(a => { const f = auths[a.id]; return f && Math.floor((new Date(f) - new Date()) / 86400000) >= 0; });
+      const authArea = authVig.length > 0
+        ? `<div style="margin-top:2px;border-top:.4px solid #eee;padding-top:2px;text-align:left">${authVig.map(a => `<div style="font-size:5px;color:#444;margin-top:1px">${a.icon} ${a.label}</div>`).join("")}</div>`
+        : "";
+      return `<div class="s"><div class="qwrap" id="q${p.id}"></div>
+        <div class="nm">${p.nombre}</div>
+        <div class="cg">${p.cargo || ""}</div>
+        <div class="id">${p.tipoDoc || "DNI"}: ${p.dni || "—"} · ${p.id}</div>
+        <div class="br">Bradken Chilca</div>
+        ${authArea}
       </div>`;
     }).join("");
+    const qrData = JSON.stringify(lista2.map(p => ({ id: p.id, u: base + p.id })));
     const w = window.open("", "_blank");
-    w.document.write('<html><head><style>@media print{.no-print{display:none}}body{font-family:Arial;padding:10px}</style></head><body>' +
-      '<button class="no-print" onclick="window.print()" style="margin-bottom:10px;padding:8px 16px;background:#185FA5;color:#fff;border:none;border-radius:6px;cursor:pointer">🖨 Imprimir todos</button>' +
-      cards + '</body></html>');
+    w.document.write(`<!DOCTYPE html><html><head><title>QR Masivo — Bradken Chilca</title>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"><\/script>
+      <style>
+        @page{size:A4;margin:5mm}
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{background:#fff;font-family:Arial,sans-serif}
+        .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:2.5mm;padding:3mm}
+        .s{border:.4px solid #ccc;padding:5px;text-align:center;border-radius:3px;page-break-inside:avoid}
+        .qwrap{display:flex;justify-content:center;align-items:center;width:100%}
+        .qwrap img,.qwrap canvas{display:block;margin:0 auto}
+        .nm{font-size:7px;font-weight:bold;margin-top:3px;line-height:1.3;text-align:center}
+        .cg{font-size:6px;color:#777;margin-top:1px;text-align:center}
+        .id{font-size:6px;color:#aaa;font-family:monospace;margin-top:1px;text-align:center}
+        .br{font-size:5.5px;color:#bbb;margin-top:2px;text-transform:uppercase;letter-spacing:.04em;text-align:center}
+      </style>
+    </head><body>
+      <div class="grid">${cards}</div>
+      <script>
+        const d=${qrData};
+        d.forEach(x=>{const e=document.getElementById("q"+x.id);if(e)new QRCode(e,{text:x.u,width:76,height:76,colorDark:"#000",colorLight:"#fff"})});
+        setTimeout(()=>window.print(),1800);
+      <\/script>
+    </body></html>`);
     w.document.close();
   };
 
