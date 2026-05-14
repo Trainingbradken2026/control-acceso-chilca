@@ -2525,6 +2525,63 @@ function ModSafety({ personas, onInd, onCap, onAutorizar }) {
 }
 
 // ── COMPONENTE AUTORIZACIONES (usado por Safety) ──────────────────────────────
+// ── INPUT DE FECHA dd/mm/yyyy con estado local ────────────────────────────────
+function AuthDateInput({ value, onChange }) {
+  // Convierte yyyy-mm-dd → dd/mm/yyyy
+  const toDisplay = (iso) => {
+    if (!iso) return "";
+    const [y, m, d] = iso.split("-");
+    return `${d || ""}/${m || ""}/${y || ""}`;
+  };
+  const [display, setDisplay] = useState(toDisplay(value));
+
+  // Sincronizar si el valor externo cambia
+  useEffect(() => { setDisplay(toDisplay(value)); }, [value]);
+
+  const handleChange = (e) => {
+    let v = e.target.value;
+    // Solo números y /
+    v = v.replace(/[^0-9/]/g, "");
+    // Auto-insertar / después de día (pos 2) y mes (pos 5)
+    if (v.length === 2 && display.length === 1) v = v + "/";
+    if (v.length === 5 && display.length === 4) v = v + "/";
+    setDisplay(v);
+    // Cuando está completo dd/mm/yyyy, convertir a ISO
+    if (v.length === 10) {
+      const [d, m, y] = v.split("/");
+      if (d && m && y && y.length === 4) {
+        const iso = `${y}-${m.padStart(2,"0")}-${d.padStart(2,"0")}`;
+        // Validar fecha
+        const fecha = new Date(iso);
+        if (!isNaN(fecha)) onChange(iso);
+      }
+    } else if (v === "") {
+      onChange("");
+    }
+  };
+
+  return (
+    <input
+      type="text"
+      placeholder="dd/mm/yyyy"
+      maxLength={10}
+      value={display}
+      onChange={handleChange}
+      style={{
+        padding: "5px 8px",
+        border: "1px solid var(--color-border-tertiary)",
+        borderRadius: 6,
+        fontSize: 12,
+        background: "var(--color-background-primary)",
+        color: "var(--color-text-primary)",
+        width: "100%",
+        fontFamily: "monospace",
+        letterSpacing: "0.05em"
+      }}
+    />
+  );
+}
+
 function TabAutorizaciones({ lista, authFechas, setAuthFechas, authGuardado, setAuthGuardado, authPersonaId, setAuthPersonaId, onAutorizar }) {
   const [busqDoc, setBusqDoc] = useState("");
   const [personaSel, setPersonaSel] = useState(null);
@@ -2552,12 +2609,6 @@ function TabAutorizaciones({ lista, authFechas, setAuthFechas, authGuardado, set
   const autorActuales = personaSel ? (personaSel.autorizaciones || {}) : {};
   const hoy = today();
 
-  // Helper: convierte dd/mm/yyyy → yyyy-mm-dd para guardar
-  const parseDMY = (s) => {
-    const [d, m, y] = (s || "").split("/");
-    if (!d || !m || !y || y.length !== 4) return "";
-    return `${y}-${m.padStart(2,"0")}-${d.padStart(2,"0")}`;
-  };
   // Helper: convierte yyyy-mm-dd → dd/mm/yyyy para mostrar
   const fmtDMY = (s) => {
     if (!s) return "";
@@ -2586,25 +2637,10 @@ function TabAutorizaciones({ lista, authFechas, setAuthFechas, authGuardado, set
               </div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-              <label style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>Vencimiento (dd/mm/yyyy)</label>
-              <input
-                type="text"
-                placeholder="dd/mm/yyyy"
-                maxLength={10}
-                value={fmtDMY(fPersona[a.id] || "")}
-                onChange={e => {
-                  let v = e.target.value.replace(/[^0-9/]/g, "");
-                  // Auto insertar / en posición 2 y 5
-                  if (v.length === 2 && !v.includes("/")) v = v + "/";
-                  if (v.length === 5 && v.split("/").length === 2) v = v + "/";
-                  // Convertir a ISO cuando está completo dd/mm/yyyy
-                  const iso = parseDMY(v);
-                  if (iso) updFecha(a.id, iso);
-                  else if (!v) updFecha(a.id, "");
-                  // Forzar re-render con valor display
-                  e.target.value = v;
-                }}
-                style={{ padding: "5px 8px", border: "1px solid var(--color-border-tertiary)", borderRadius: 6, fontSize: 12, background: "var(--color-background-primary)", color: "var(--color-text-primary)", width: "100%", fontFamily: "monospace" }}
+              <label style={{ fontSize: 11, color: "var(--color-text-secondary)" }}>Vencimiento</label>
+              <AuthDateInput
+                value={fechaActual}
+                onChange={val => updFecha(a.id, val)}
               />
               {fechaActual && <button onClick={() => updFecha(a.id, "")} style={{ fontSize: 10, background: "transparent", border: "none", color: "#A32D2D", cursor: "pointer", textAlign: "left" }}>✕ Quitar autorización</button>}
             </div>
