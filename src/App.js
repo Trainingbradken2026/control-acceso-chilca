@@ -3827,7 +3827,7 @@ export default function App() {
     setTimeout(async () => {
       for (const row of supaRows) {
         try {
-          await supa.from("personas").upsert(row, { onConflict: "dni" });
+          await supa.from("personas").upsert(row, { onConflict: "tipo_doc,dni" });
         } catch(e) {
           console.error("Error guardando persona en Supabase:", e);
         }
