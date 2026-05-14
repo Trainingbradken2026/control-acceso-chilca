@@ -3796,7 +3796,7 @@ export default function App() {
           };
           ids.push({ id: existing.id, nombre: existing.nombre, accion: "actualizado" });
           const p = next[storeKey];
-          supaRows.push({ id: p.id, nombre: p.nombre, dni: p.dni, tipo_doc: p.tipoDoc || "DNI", cargo: p.cargo, tipo: p.tipo, emp_id: empresa.id, sctr_poliza: form.poliza, sctr_aseguradora: form.aseg, sctr_vencimiento: form.sctrFecha || null, sctr_url: form.sctrUrl || null, fecha_prevista: form.fechaIng || null, dias_en_planta: dias, fecha_venc_planta: fechaVenc, resp_bradken: { nombre: form.responsable, email: form.respEmail, tel: form.respTel }, bloqueado: false });
+          supaRows.push({ dni: p.dni, nombre: p.nombre, tipo_doc: p.tipoDoc || "DNI", cargo: p.cargo, tipo: p.tipo, emp_id: empresa.id, sctr_poliza: form.poliza, sctr_aseguradora: form.aseg, sctr_vencimiento: form.sctrFecha || null, sctr_url: form.sctrUrl || null, fecha_prevista: form.fechaIng || null, dias_en_planta: dias, fecha_venc_planta: fechaVenc, resp_bradken: { nombre: form.responsable, email: form.respEmail, tel: form.respTel }, bloqueado: false });
         } else {
           const id = genPId(); const color = AC[Object.keys(next).length % AC.length];
           const dias = f.tipo === "induccion" ? 1 : Number(form.diasEnPlanta) || 1;
@@ -3818,7 +3818,7 @@ export default function App() {
             bloqueado: false,
           };
           ids.push({ id: next[docKey].id, nombre: f.nombre, accion: "nuevo" });
-          supaRows.push({ id: next[docKey].id, nombre: f.nombre, dni: f.dniQ || f.dni, tipo_doc: f.tipoDoc || "DNI", cargo: f.cargo, tipo: f.tipo || f.tipoPersona || "contratista", emp_id: empresa.id, sctr_poliza: form.poliza, sctr_aseguradora: form.aseg, sctr_vencimiento: form.sctrFecha || null, sctr_url: form.sctrUrl || null, fecha_prevista: form.fechaIng || null, dias_en_planta: dias, fecha_venc_planta: fechaVenc, resp_bradken: { nombre: form.responsable, email: form.respEmail, tel: form.respTel }, bloqueado: false });
+          supaRows.push({ nombre: f.nombre, dni: f.dniQ || f.dni, tipo_doc: f.tipoDoc || "DNI", cargo: f.cargo, tipo: f.tipo || f.tipoPersona || "contratista", emp_id: empresa.id, sctr_poliza: form.poliza, sctr_aseguradora: form.aseg, sctr_vencimiento: form.sctrFecha || null, sctr_url: form.sctrUrl || null, fecha_prevista: form.fechaIng || null, dias_en_planta: dias, fecha_venc_planta: fechaVenc, resp_bradken: { nombre: form.responsable, email: form.respEmail, tel: form.respTel }, bloqueado: false });
         }
       });
       return next;
@@ -3827,7 +3827,7 @@ export default function App() {
     setTimeout(async () => {
       for (const row of supaRows) {
         try {
-          await supa.from("personas").upsert(row, { onConflict: "id" });
+          await supa.from("personas").upsert(row, { onConflict: "dni" });
         } catch(e) {
           console.error("Error guardando persona en Supabase:", e);
         }
