@@ -3680,68 +3680,6 @@ export default function App() {
   const [usuarios, setUsuarios] = useState({ ...DEMO });
   const [solicitudes, setSolicitudes] = useState([]);
 
-  // ── DATOS DE DEMO ─────────────────────────────────────────
-  useEffect(() => {
-    const E1 = "EMP-001"; const E2 = "EMP-002"; const E3 = "EMP-003";
-    ec = 3;
-    const empDemo = {
-      [E1]: { id: E1, ruc: "20512345678", razonSocial: "Metalmec S.A.C.", rubro: "Mantenimiento mecánico", contactoNombre: "José Ríos", contactoEmail: "jrios@metalmec.pe", estado: "activo", observacion: "", fechaReg: "2026-04-01" },
-      [E2]: { id: E2, ruc: "20587654321", razonSocial: "Tecno Electro S.A.C.", rubro: "Electricidad", contactoNombre: "Sandra Vega", contactoEmail: "svega@tecnoelectro.pe", estado: "restringido", observacion: "Incidente leve en zona de fundición — 2026-03-15. Acceso condicionado.", fechaReg: "2026-03-10" },
-      [E3]: { id: E3, ruc: "20598760001", razonSocial: "Ingeniería Civil Perú S.A.", rubro: "Construcción", contactoNombre: "Marco Huamán", contactoEmail: "mhuaman@icperu.pe", estado: "activo", observacion: "", fechaReg: "2026-04-20" },
-    };
-    setEmpresas(empDemo);
-
-    pc = 0;
-    const mkP = (nombre, dni, cargo, tipo, empId, sctrV, indF, epp, color, fechaPrevista) => {
-      const id = genPId();
-      return { id, nombre, dni, cargo, tipo, empId, color: AC[color % AC.length],
-        sctr: { poliza: "SCTR-2026-0" + id.slice(-3), aseguradora: "Rimac Seguros", vencimiento: sctrV, url: null },
-        ind: indF, capacitacionVirtual: tipo === "visitante" ? (indF ? indF : null) : null,
-        induccion: indF, epp: { lentes: epp[0], casco: epp[1], chaleco: epp[2], zapatos: epp[3] },
-        bloqueado: false, sctrVerificado: false, fechaPrevista: fechaPrevista || null,
-        respBradken: { nombre: "Antonio Vera", email: "avera@bradken.com", tel: "+51 987 654 321" },
-        registradoPor: { nombre: "Antonio Vera", cargo: "Responsable Bradken" },
-      };
-    };
-
-    const hoy = new Date(); const fmtD = (d) => d.toISOString().split("T")[0];
-    const enDias = (n) => { const d = new Date(hoy); d.setDate(d.getDate() + n); return fmtD(d); };
-
-    const P = {
-      "71234567": mkP("Carlos Mamani Quispe","71234567","Técnico mecánico",     "contratista",E1,"2026-11-30","2025-12-10",[true,true,true,true],0, fmtD(hoy)),
-      "72345678": mkP("Rosa Flores Ccama",   "72345678","Supervisora de obra",  "contratista",E1,"2026-08-15","2026-01-20",[true,true,true,false],1, fmtD(hoy)),
-      "73456789": mkP("Luis Tapia Condori",  "73456789","Electricista",         "induccion",  E2,"2026-05-20",null,        [true,true,false,true],2, fmtD(hoy)),
-      "74567890": mkP("Ana Chávez Ríos",     "74567890","Técnica eléctrica",    "induccion",  E2,"2025-09-10",null,        [true,true,true,true],3, enDias(2)),
-      "75678901": mkP("Pedro Salas Huanca",  "75678901","Operador de equipo",   "contratista",E3,"2026-12-01","2026-02-14",[true,true,true,true],0, enDias(1)),
-      "76789012": mkP("Marco Villanueva",    "76789012","Ingeniero civil",      "contratista",E3,"2026-10-30","2026-03-01",[true,true,true,true],1, enDias(5)),
-      "77890123": mkP("Diana Torres Paz",    "77890123","Representante técnica","visitante",  E2,"2026-06-30",null,        [false,true,true,false],2, fmtD(hoy)),
-      "78901234": mkP("Jorge Quispe Lima",   "78901234","Ayudante de obras",    "induccion",  E3,"2026-07-15",null,        [true,true,true,true],3, enDias(3)),
-    };
-    setPersonas(P);
-
-    const now = new Date();
-    const haceMin = m => new Date(now.getTime() - m * 60000).toISOString();
-    setAccesos([
-      { pid: "PER-0001", nombre: "Carlos Mamani Quispe", empresa: "Metalmec S.A.C.", tipoIngreso: "Trabajos en planta", ingreso: haceMin(140), salida: null },
-      { pid: "PER-0005", nombre: "Pedro Salas Huanca", empresa: "Ingeniería Civil Perú S.A.", tipoIngreso: "Trabajos en planta", ingreso: haceMin(75), salida: null },
-      { pid: "PER-0006", nombre: "Marco Villanueva", empresa: "Ingeniería Civil Perú S.A.", tipoIngreso: "Trabajos en planta", ingreso: haceMin(55), salida: null },
-      { pid: "PER-0002", nombre: "Rosa Flores Ccama", empresa: "Metalmec S.A.C.", tipoIngreso: "Inducción / charla de seguridad", ingreso: haceMin(200), salida: haceMin(120) },
-      { pid: "PER-0007", nombre: "Diana Torres Paz", empresa: "Tecno Electro S.A.C.", tipoIngreso: "Visita", ingreso: haceMin(30), salida: haceMin(5) },
-    ]);
-
-    setEquipos([
-      { id: "EQ-0001", desc: "Retroexcavadora CAT 320D", serie: "CAT-PLH-0032", empId: E3, empNombre: "Ingeniería Civil Perú S.A.", opId: "PER-0005", opNombre: "Pedro Salas Huanca", pid: "PER-0005", docs: { SOAT: true, "Revisión técnica": true, "Permiso de operación": true }, ingreso: haceMin(80), salida: null },
-      { id: "EQ-0002", desc: "Generador Kipor 20KVA", serie: "KIP-GEN-2024-11", empId: E2, empNombre: "Tecno Electro S.A.C.", opId: "PER-0003", opNombre: "Luis Tapia Condori", pid: "PER-0003", docs: { SOAT: false, "Revisión técnica": true, "Permiso de operación": true }, ingreso: haceMin(300), salida: haceMin(60) },
-    ]);
-
-    setHerramientas([
-      { id: "HER-AA01", desc: "Llave stilson 24\"", cant: 3, operador: "Carlos Mamani Quispe", operadorId: "PER-0001", pid: "PER-0001", ingreso: haceMin(130), salida: null },
-      { id: "HER-AA02", desc: "Multímetro digital Fluke", cant: 1, operador: "Luis Tapia Condori", operadorId: "PER-0003", pid: "PER-0003", ingreso: haceMin(290), salida: haceMin(55) },
-      { id: "HER-AA03", desc: "Amoladora angular 9\"", cant: 2, operador: "Carlos Mamani Quispe", operadorId: "PER-0001", pid: "PER-0001", ingreso: haceMin(130), salida: null },
-    ]);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // ── CARGA DESDE SUPABASE (cuando hay usuario autenticado) ──
   useEffect(() => {
     if (!user) return;
@@ -3767,25 +3705,34 @@ export default function App() {
   };
 
   const cargarPersonas = async () => {
-    const { data } = await supa.from("personas").select("*");
-    if (data && data.length > 0) {
-      const mapa = {};
-      data.forEach(p => {
-        mapa[p.dni] = {
-          id: p.id, dni: p.dni, nombre: p.nombre, cargo: p.cargo, tipo: p.tipo,
-          empId: p.emp_id, color: p.color || AC[0],
-          sctr: { poliza: p.sctr_poliza, aseguradora: p.sctr_aseguradora, vencimiento: p.sctr_vencimiento, url: p.sctr_url },
-          sctrVerificado: p.sctr_verificado || false,
-          induccion: p.induccion, ind: p.induccion, capacitacionVirtual: p.capacitacion_virtual, cap: p.capacitacion_virtual,
-          epp: { lentes: p.epp_lentes, casco: p.epp_casco, chaleco: p.epp_chaleco, zapatos: p.epp_zapatos },
-          fechaPrevista: p.fecha_prevista, bloqueado: p.bloqueado || false,
-          motivoBloqueo: p.motivo_bloqueo, fechaBloqueo: p.fecha_bloqueo,
-          respBradken: { nombre: p.resp_bradken_nombre, email: p.resp_bradken_email, tel: p.resp_bradken_tel },
-          registradoPor: { nombre: p.registrado_por_nombre, cargo: p.registrado_por_cargo },
-        };
-      });
-      setPersonas(mapa);
-    }
+    const { data, error } = await supa.from("personas").select("*");
+    if (error) { console.error("Error cargando personas:", error); return; }
+    // Siempre reemplazar — incluso si viene vacío limpia los datos demo
+    const mapa = {};
+    (data || []).forEach(p => {
+      const rb = (typeof p.resp_bradken === "string" ? JSON.parse(p.resp_bradken || "{}") : p.resp_bradken) || {};
+      const key = p.dni || p.id;
+      mapa[key] = {
+        id: p.id, dni: p.dni, tipoDoc: p.tipo_doc || "DNI",
+        nombre: p.nombre, cargo: p.cargo, tipo: p.tipo,
+        empId: p.emp_id, color: p.color || AC[0],
+        sctr: { poliza: p.sctr_poliza, aseguradora: p.sctr_aseguradora, vencimiento: p.sctr_vencimiento, url: p.sctr_url },
+        sctrVerificado: p.sctr_verificado || false,
+        sctrVerificadoPor: p.sctr_verificado_por || "",
+        induccion: p.induccion, ind: p.induccion,
+        capacitacionVirtual: p.capacitacion_virtual, cap: p.capacitacion_virtual,
+        autorizaciones: (typeof p.autorizaciones === "string" ? JSON.parse(p.autorizaciones || "{}") : p.autorizaciones) || {},
+        epp: { lentes: p.epp_lentes, casco: p.epp_casco, chaleco: p.epp_chaleco, zapatos: p.epp_zapatos },
+        fechaPrevista: p.fecha_prevista,
+        diasEnPlanta: p.dias_en_planta,
+        fechaVencPlanta: p.fecha_venc_planta,
+        bloqueado: p.bloqueado || false,
+        motivoBloqueo: p.motivo_bloqueo, fechaBloqueo: p.fecha_bloqueo,
+        respBradken: { nombre: rb.nombre || p.resp_bradken_nombre || "", email: rb.email || p.resp_bradken_email || "", tel: rb.tel || p.resp_bradken_tel || "" },
+        registradoPor: { nombre: p.registrado_por_nombre || "", cargo: p.registrado_por_cargo || "" },
+      };
+    });
+    setPersonas(mapa);
   };
 
   const cargarAccesos = async () => {
