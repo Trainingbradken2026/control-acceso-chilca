@@ -1072,6 +1072,8 @@ function ModRegistro({ empresas, personas, onRegistrar, onActualizarSctr, irACon
           </div>
         );
       })}
+      {empSel && (
+        <>
         <div style={SC}>
           <p style={{ fontSize: 12, fontWeight: 500, color: "var(--color-text-secondary)", marginBottom: "1rem" }}>Paso 3 — SCTR</p>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -1128,11 +1130,13 @@ function ModRegistro({ empresas, personas, onRegistrar, onActualizarSctr, irACon
         </div>
       )}
 
-      {empSel && (
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginBottom: "1rem" }}>
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginBottom: "1rem" }}>
           <Btn onClick={() => { setEmpSel(null); setBusq(""); setRows([{ dniQ: "", dniStatus: "idle", nombre: "", cargo: "", tipo: "contratista", tipoDoc: "DNI", existingId: null }]); setForm({ responsable: "", respEmail: "", respTel: "", tipoVisita: "Contratista - Mantenimiento", fechaIng: today(), diasEnPlanta: 1, poliza: "", aseg: "", sctrFecha: "", sctrUrl: "", registradoPor: "bradken", regNombre: "", regCargo: "" }); }}>✕ Cancelar</Btn>
           <Btn c="blue" onClick={registrar}>✔ Confirmar registro</Btn>
         </div>
+          </div>
+        </>
       )}
 
       </div>
