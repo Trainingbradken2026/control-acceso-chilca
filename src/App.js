@@ -2435,18 +2435,20 @@ function ModSafety({ personas, onInd, onCap, onAutorizar }) {
       <p style={{ fontSize: 15, fontWeight: 500, marginBottom: "1rem" }}>❤️ Panel Safety</p>
       <TabBar tabs={[["cont","Contratistas e Inducción"],["vis","Visitantes — cap. virtual"],["auth","🔐 Autorizaciones"]]} active={tab} onSelect={t => { setTab(t); setQ(""); setModo("pendientes"); }} />
 
-      {/* Selector de modo */}
-      <div style={{ display: "flex", gap: 8, marginBottom: "1rem" }}>
-        <button onClick={() => { setModo("pendientes"); setQ(""); }} style={{ ...STAB, background: modo === "pendientes" ? "var(--color-background-inverse)" : "var(--color-background-primary)", color: modo === "pendientes" ? "var(--color-text-inverse)" : "var(--color-text-secondary)" }}>
-          📋 Pendientes
-        </button>
-        <button onClick={() => setModo("buscar")} style={{ ...STAB, background: modo === "buscar" ? "var(--color-background-inverse)" : "var(--color-background-primary)", color: modo === "buscar" ? "var(--color-text-inverse)" : "var(--color-text-secondary)" }}>
-          🔍 Buscar persona
-        </button>
-      </div>
+      {/* Selector de modo — solo visible en tabs cont y vis */}
+      {tab !== "auth" && (
+        <div style={{ display: "flex", gap: 8, marginBottom: "1rem" }}>
+          <button onClick={() => { setModo("pendientes"); setQ(""); }} style={{ ...STAB, background: modo === "pendientes" ? "var(--color-background-inverse)" : "var(--color-background-primary)", color: modo === "pendientes" ? "var(--color-text-inverse)" : "var(--color-text-secondary)" }}>
+            📋 Pendientes
+          </button>
+          <button onClick={() => setModo("buscar")} style={{ ...STAB, background: modo === "buscar" ? "var(--color-background-inverse)" : "var(--color-background-primary)", color: modo === "buscar" ? "var(--color-text-inverse)" : "var(--color-text-secondary)" }}>
+            🔍 Buscar persona
+          </button>
+        </div>
+      )}
 
       {/* MODO PENDIENTES */}
-      {modo === "pendientes" && tab === "cont" && (() => {
+      {tab !== "auth" && modo === "pendientes" && tab === "cont" && (() => {
         const todos = lista.filter(p => p.tipo === "contratista" || p.tipo === "induccion");
         const pendientes = todos.filter(p => !confirmados[p.id] && indSt(p.ind || p.induccion) !== "vigente" && indSt(p.ind || p.induccion) !== "proximo");
         const aprobadosHoy = todos.filter(p => confirmados[p.id]);
@@ -2470,7 +2472,7 @@ function ModSafety({ personas, onInd, onCap, onAutorizar }) {
         );
       })()}
 
-      {modo === "pendientes" && tab === "vis" && (() => {
+      {tab !== "auth" && modo === "pendientes" && tab === "vis" && (() => {
         const pendientes = lista.filter(p => p.tipo === "visitante" && !p.cap);
         return pendientes.length === 0
           ? <div style={{ textAlign: "center", padding: "3rem", color: "var(--color-text-secondary)" }}>Sin visitantes pendientes de aprobación.</div>
@@ -2478,7 +2480,7 @@ function ModSafety({ personas, onInd, onCap, onAutorizar }) {
       })()}
 
       {/* MODO BÚSQUEDA */}
-      {modo === "buscar" && (
+      {tab !== "auth" && modo === "buscar" && (
         <div>
           <input
             value={q}
