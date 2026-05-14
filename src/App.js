@@ -513,7 +513,6 @@ function ModRegistro({ empresas, personas, onRegistrar, onActualizarSctr, irACon
   const [busq, setBusq] = useState("");
   const [rows, setRows] = useState([{ dniQ: "", dniStatus: "idle", nombre: "", cargo: "", tipo: "contratista", tipoDoc: "DNI", existingId: null }]);
   const [form, setForm] = useState({ responsable: "", respEmail: "", respTel: "", tipoVisita: "Contratista - Mantenimiento", fechaIng: today(), diasEnPlanta: 1, poliza: "", aseg: "", sctrFecha: "", sctrUrl: "", registradoPor: "bradken", regNombre: "", regCargo: "" });
-  const [emailSim, setEmailSim] = useState(null);
   const [misRegistros, setMisRegistros] = useState([]);  // historial de registros del usuario
   const [editando, setEditando] = useState(null);        // id de persona en edición
   const upd = (k, v) => setForm(x => ({ ...x, [k]: v }));
@@ -539,6 +538,8 @@ function ModRegistro({ empresas, personas, onRegistrar, onActualizarSctr, irACon
     if (!form.poliza.trim()) { alert("Ingresa el N° de póliza SCTR."); return; }
     if (!form.aseg.trim()) { alert("Ingresa la aseguradora del SCTR."); return; }
     if (!form.sctrFecha) { alert("Ingresa la fecha de vencimiento del SCTR."); return; }
+    if (!form.sctrUrl || !form.sctrUrl.trim()) { alert("El link del SCTR en Google Drive es obligatorio. Usa el formulario de carga de SCTR para obtenerlo."); return; }
+    if (!form.sctrUrl.includes("drive.google.com") && !form.sctrUrl.includes("docs.google.com")) { alert("El link del SCTR debe ser un link de Google Drive válido (drive.google.com)."); return; }
     // Fecha prevista
     if (!form.fechaIng) { alert("Ingresa la fecha prevista de ingreso."); return; }
 
@@ -556,12 +557,6 @@ function ModRegistro({ empresas, personas, onRegistrar, onActualizarSctr, irACon
       empId: empSel.id,
     };
     setMisRegistros(prev => [nuevoReg, ...prev]);
-
-    setEmailSim({
-      to: form.respEmail || "responsable@bradken.com",
-      asunto: "Registro confirmado: " + empSel.razonSocial,
-      body: "Estimado/a " + form.responsable + ",\n\nEmpresa: " + empSel.razonSocial + " (RUC: " + empSel.ruc + ")\nFecha prevista: " + form.fechaIng + "\n\nPersonas registradas/actualizadas:\n  " + ids + "\n\nSCTR: " + form.poliza + " — " + form.aseg + " — Vence: " + form.sctrFecha + "\n\nResponsable Bradken: " + form.responsable + " · Tel: " + form.respTel + "\nRegistrado por: " + (form.registradoPor === "bradken" ? form.responsable : form.regNombre + (form.regCargo ? " (" + form.regCargo + ")" : "")) + "\n\nAtentamente,\nControl de Acceso — Bradken Chilca"
-    });
     setEmpSel(null); setBusq("");
     setRows([{ dniQ: "", dniStatus: "idle", nombre: "", cargo: "", tipo: "contratista", tipoDoc: "DNI", existingId: null }]);
     setForm({ responsable: "", respEmail: "", respTel: "", tipoVisita: "Contratista - Mantenimiento", fechaIng: today(), diasEnPlanta: 1, poliza: "", aseg: "", sctrFecha: "", sctrUrl: "", registradoPor: "bradken", regNombre: "", regCargo: "" });
@@ -1092,7 +1087,7 @@ function ModRegistro({ empresas, personas, onRegistrar, onActualizarSctr, irACon
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <label style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
-                Link SCTR en Google Drive
+                Link SCTR en Google Drive <span style={{ color: "#A32D2D" }}>*</span>
                 <span style={{ marginLeft: 6, fontWeight: 400, color: "var(--color-text-secondary)", fontSize: 11 }}>(obtenido del formulario de carga)</span>
               </label>
               <input
@@ -1133,15 +1128,13 @@ function ModRegistro({ empresas, personas, onRegistrar, onActualizarSctr, irACon
         </div>
       )}
 
-      {empSel && <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "1rem" }}><Btn c="blue" onClick={registrar}>✔ Confirmar registro</Btn></div>}
-
-      {emailSim && (
-        <div style={{ background: "var(--color-background-secondary)", borderLeft: "3px solid #185FA5", borderRadius: "0 8px 8px 0", padding: "1rem" }}>
-          <div style={{ fontSize: 11, color: "var(--color-text-secondary)", marginBottom: 8 }}>📧 Correo simulado → {emailSim.to}</div>
-          <strong>Asunto:</strong> {emailSim.asunto}<br /><br />
-          <pre style={{ fontSize: 12, whiteSpace: "pre-wrap", fontFamily: "inherit" }}>{emailSim.body}</pre>
+      {empSel && (
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginBottom: "1rem" }}>
+          <Btn onClick={() => { setEmpSel(null); setBusq(""); setRows([{ dniQ: "", dniStatus: "idle", nombre: "", cargo: "", tipo: "contratista", tipoDoc: "DNI", existingId: null }]); setForm({ responsable: "", respEmail: "", respTel: "", tipoVisita: "Contratista - Mantenimiento", fechaIng: today(), diasEnPlanta: 1, poliza: "", aseg: "", sctrFecha: "", sctrUrl: "", registradoPor: "bradken", regNombre: "", regCargo: "" }); }}>✕ Cancelar</Btn>
+          <Btn c="blue" onClick={registrar}>✔ Confirmar registro</Btn>
         </div>
       )}
+
       </div>
       )}
     </div>
@@ -3195,7 +3188,7 @@ function ModVigencias({ personas, empresas, accesos }) {
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>
-                  {["Persona", "DNI", "Tipo", "Empresa", "Días en planta", "Vence", "Estado"].map(h => (
+                  {["Persona", "Documento", "# Documento", "Tipo", "Empresa", "Días en planta", "Vence", "Estado"].map(h => (
                     <th key={h} style={STH}>{h}</th>
                   ))}
                 </tr>
@@ -3216,6 +3209,7 @@ function ModVigencias({ personas, empresas, accesos }) {
                           </div>
                         </div>
                       </td>
+                      <td style={STD}><Badge t="gray">{p.tipoDoc || "DNI"}</Badge></td>
                       <td style={{ ...STD, fontFamily: "var(--mono)", fontSize: 12 }}>{p.dni || "—"}</td>
                       <td style={STD}>
                         <Badge t={p.tipo === "contratista" ? "blue" : p.tipo === "induccion" ? "amber" : "teal"}>
